@@ -128,7 +128,13 @@ def main():
             print(f"Message UID {uid} from {sender} on {date}: {subj}")
             c = input('Delete? ([y]/n): ').strip().lower()
             if c in ('', 'y', 'yes'):
-                mail.uid('STORE', str(uid), '+FLAGS', r'(\\Deleted)')
+                try:
+                    mail.uid('STORE', str(uid), '+FLAGS', r'(\\Deleted)')
+                except imaplib.IMAP4.abort as e:
+                    print(f"Warning: delete abort UID {uid}: {e}", file=sys.stderr)
+                    mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+                    mail.login(IMAP_USER, IMAP_PASS)
+                    mail.select('INBOX')
         elif classification == 'summarize':
             # Fetch full message
             res, full = mail.uid('FETCH', str(uid), '(RFC822)')
