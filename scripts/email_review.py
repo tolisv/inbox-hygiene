@@ -161,6 +161,7 @@ def main():
     senders_file = os.path.join(data_dir, 'senders.json')
     state_file = os.path.join(data_dir, 'state.json')
     summary_file = os.path.join(data_dir, 'for_summary.txt')
+    interactive = sys.stdin.isatty()
 
     os.makedirs(data_dir, exist_ok=True)
 
@@ -223,8 +224,12 @@ def main():
           f"new: {len(new_senders)}")
 
     # ---- Phase 2: Classify new senders ---------------------------------
+    pending_senders = []
     if new_senders:
-        print(f"\nClassify {len(new_senders)} new sender(s):\n")
+        if interactive:
+            print(f"\nClassify {len(new_senders)} new sender(s):\n")
+        else:
+            print(f"\nSkipping {len(new_senders)} new sender(s) in non-interactive mode.")
     for idx, sender in enumerate(new_senders, 1):
         latest_uid, latest_dt = sender_latest[sender]
         # Fetch preview only for new senders
@@ -234,6 +239,16 @@ def main():
         if snippet:
             for line in snippet.splitlines():
                 print(f"  | {line}")
+
+        if not interactive:
+            pending_senders.append({
+                'sender': sender,
+                'latest_uid': latest_uid,
+                'latest_date': latest_dt.isoformat() if latest_dt else None,
+                'subject': subj,
+            })
+            print('  Deferred classification (non-interactive mode).\n')
+            continue
 
         while True:
             resp = input('  [d]elete / [s]ummarize / [k]eep? ').strip().lower()
@@ -314,8 +329,14 @@ def main():
     # ---- Phase 5: Save state -------------------------------------------
     max_uid = max(uid for uid, _, _ in messages)
     state['last_uid'] = max_uid
+    if pending_senders:
+        state['pending_senders'] = pending_senders
+    else:
+        state.pop('pending_senders', None)
     atomic_write_json(state_file, state)
     print(f"State saved (last_uid={max_uid}).")
+    if pending_senders:
+        print(f"Pending classification for {len(pending_senders)} sender(s).")
 
     imap.logout()
     print("Email review complete.")
