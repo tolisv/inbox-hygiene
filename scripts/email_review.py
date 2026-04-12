@@ -192,8 +192,8 @@ def main():
 
     imap = ImapConn(IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASS)
 
-    # Search for messages in the last 90 days
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).strftime('%d-%b-%Y')
+    # Search for messages in the last 360 days
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=360)).strftime('%d-%b-%Y')
     print(f"Searching for messages since {cutoff}…")
     res, data = imap.uid('SEARCH', None, f'(SINCE {cutoff})')
     if res != 'OK':
