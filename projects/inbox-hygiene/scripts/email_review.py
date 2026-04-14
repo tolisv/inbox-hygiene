@@ -118,11 +118,6 @@ def attention_keywords_in(subject):
     return [kw for kw in ATTENTION_KEYWORDS if kw in subj_lower]
 
 
-# Temporary alias — removed when decide_action() is updated in Task 4
-def subject_triggers_attention(subject):
-    return bool(attention_keywords_in(subject))
-
-
 # ---------------------------------------------------------------------------
 # IMAP connection wrapper
 # ---------------------------------------------------------------------------
@@ -300,46 +295,36 @@ def migrate_senders(senders_map):
     return migrated
 
 
-def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_archive):
+def decide_action(sender, subject, dt, senders_map, min_age_delete):
     """
-    Determine the action for one message given its classification context.
+    Determine the action for one message.
 
-    Returns (action, reason) where action is one of:
-        'delete'        – mark \\Deleted + expunge
-        'archive'       – COPY to Archive folder + delete from INBOX
-        'flag_attention'– mark \\Flagged (needs human review)
-        'summarize'     – extract content for summary file
-        'keep'          – no action
-        'skip'          – no action (unclassified, too recent, etc.)
+    Returns (action, reason, attention, keywords_matched) where action is one of:
+        'delete'          – mark \\Deleted + expunge
+        'collect_digest'  – append body to for_digest.txt
+        'keep'            – no action
+        'skip'            – no action (unclassified or too recent)
+
+    attention: True only for 'collect_digest' emails that match attention keywords.
+    keywords_matched: list of matched keywords (non-empty only when attention=True).
     """
     classification = senders_map.get(sender)
     if not classification:
-        return 'skip', 'unclassified sender'
+        return 'skip', 'unclassified sender', False, []
 
-    if classification == 'keep_never_auto':
-        return 'keep', 'keep_never_auto — never auto-process'
-
-    if classification == 'needs_attention':
-        return 'flag_attention', 'sender classified as needs_attention'
-
-    # Keyword override: protect regardless of sender classification
-    if subject_triggers_attention(subject):
-        return 'flag_attention', f'keyword override (sender was: {classification})'
+    if classification == 'keep':
+        return 'keep', 'keep — never auto-process', False, []
 
     if classification == 'delete':
         if not is_old_enough(dt, min_age_delete):
-            return 'skip', f'too recent ({age_days(dt)}d < min {min_age_delete}d)'
-        return 'delete', f'sender=delete, age={age_days(dt)}d'
+            return 'skip', f'too recent ({age_days(dt)}d < min {min_age_delete}d)', False, []
+        return 'delete', f'sender=delete, age={age_days(dt)}d', False, []
 
-    if classification == 'archive_reference':
-        if not is_old_enough(dt, min_age_archive):
-            return 'skip', f'too recent ({age_days(dt)}d < min {min_age_archive}d)'
-        return 'archive', f'sender=archive_reference, age={age_days(dt)}d'
+    if classification == 'digest':
+        matched = attention_keywords_in(subject)
+        return 'collect_digest', 'sender=digest', bool(matched), matched
 
-    if classification == 'summarize':
-        return 'summarize', 'sender=summarize'
-
-    return 'skip', f'unknown classification: {classification}'
+    return 'skip', f'unknown classification: {classification}', False, []
 
 
 # ---------------------------------------------------------------------------
