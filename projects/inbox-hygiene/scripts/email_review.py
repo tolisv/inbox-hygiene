@@ -109,11 +109,12 @@ def attention_keywords_in(subject):
     if not subject:
         return []
     subj_lower = subject.lower()
-    return [kw for kw in ATTENTION_KEYWORDS if kw.lower() in subj_lower]
+    return [kw for kw in ATTENTION_KEYWORDS if kw in subj_lower]
 
 
 # Temporary alias — removed when decide_action() is updated in Task 4
-subject_triggers_attention = lambda subject: bool(attention_keywords_in(subject))
+def subject_triggers_attention(subject):
+    return bool(attention_keywords_in(subject))
 
 
 # ---------------------------------------------------------------------------
