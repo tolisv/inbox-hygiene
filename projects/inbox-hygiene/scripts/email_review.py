@@ -463,23 +463,17 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
 
     while True:
         resp = input(
-            '  [d]elete / [a]rchive_reference / [s]ummarize / '
-            '[n]eeds_attention / [k]eep_never_auto? '
+            '  [d]elete / [di]gest / [k]eep? '
         ).strip().lower()
         mapping = {
             'd': 'delete', 'delete': 'delete',
-            'a': 'archive_reference', 'archive': 'archive_reference',
-            'archive_reference': 'archive_reference',
-            's': 'summarize', 'summarize': 'summarize',
-            'n': 'needs_attention', 'needs': 'needs_attention',
-            'needs_attention': 'needs_attention',
-            'k': 'keep_never_auto', 'keep': 'keep_never_auto',
-            'keep_never_auto': 'keep_never_auto',
+            'di': 'digest', 'dig': 'digest', 'digest': 'digest',
+            'k': 'keep', 'keep': 'keep',
         }
         if resp in mapping:
             senders_map[sender] = mapping[resp]
             break
-        print('  Please enter d, a, s, n, or k.')
+        print('  Please enter d, di, or k.')
 
 
 # ---------------------------------------------------------------------------
