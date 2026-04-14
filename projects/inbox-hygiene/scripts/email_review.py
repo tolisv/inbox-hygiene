@@ -69,10 +69,6 @@ ATTENTION_KEYWORDS = [
     'prazo', 'vencendo',
 ]
 
-ATTENTION_RE = re.compile(
-    r'(?:' + '|'.join(re.escape(kw) for kw in ATTENTION_KEYWORDS) + r')',
-    re.IGNORECASE,
-)
 
 ARCHIVE_FOLDER = 'Archive'
 DEFAULT_MIN_AGE_DELETE = 7
@@ -108,9 +104,12 @@ def is_old_enough(dt, min_days):
     return d is None or d >= min_days
 
 
-def subject_triggers_attention(subject):
-    """Return True if subject contains any high-importance keyword."""
-    return bool(ATTENTION_RE.search(subject or ''))
+def attention_keywords_in(subject):
+    """Return list of ATTENTION_KEYWORDS found in subject (case-insensitive)."""
+    if not subject:
+        return []
+    subj_lower = subject.lower()
+    return [kw for kw in ATTENTION_KEYWORDS if kw.lower() in subj_lower]
 
 
 # ---------------------------------------------------------------------------
