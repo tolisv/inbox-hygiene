@@ -332,34 +332,78 @@ def decide_action(sender, subject, dt, senders_map, min_age_delete):
 # ---------------------------------------------------------------------------
 
 class Digest:
-    """Accumulates action records and writes a structured report."""
+    """Accumulates action records and writes structured JSON + human-readable report."""
 
-    def __init__(self):
+    def __init__(self, account: str):
+        self._account = account
+        self._total_scanned = 0
         self._buckets = {
-            'deleted':           [],
-            'archived':          [],
-            'flagged_attention': [],
-            'summarized':        [],
+            'deleted': [],
+            'digest_collected': [],
+            'kept': [],
+            'skipped': [],
         }
+        self._attention_items = []
+        self._pending_senders = []
 
-    def record(self, action, sender, uid, subject, reason=''):
-        entry = {'uid': uid, 'sender': sender,
-                 'subject': (subject or '')[:100], 'reason': reason}
-        mapping = {
-            'delete':         'deleted',
-            'archive':        'archived',
-            'flag_attention': 'flagged_attention',
-            'summarize':      'summarized',
+    def set_total_scanned(self, n: int):
+        self._total_scanned = n
+
+    def set_pending_senders(self, pending: list):
+        self._pending_senders = pending
+
+    def record(self, action: str, sender: str, uid: int, subject: str,
+               dt=None, reason: str = '', attention: bool = False,
+               keywords_matched: list = None):
+        if keywords_matched is None:
+            keywords_matched = []
+        entry = {
+            'uid': uid,
+            'sender': sender,
+            'subject': (subject or '')[:100],
+            'date': dt.isoformat() if dt else None,
         }
-        key = mapping.get(action)
-        if key:
-            self._buckets[key].append(entry)
+        if action == 'delete':
+            entry['age_days'] = age_days(dt)
+            self._buckets['deleted'].append(entry)
+        elif action == 'collect_digest':
+            digest_entry = {**entry, 'attention': attention,
+                            'keywords_matched': keywords_matched}
+            self._buckets['digest_collected'].append(digest_entry)
+            if attention:
+                self._attention_items.append({**digest_entry, 'category': 'digest'})
+        elif action == 'keep':
+            self._buckets['kept'].append(entry)
+        elif action == 'skip':
+            self._buckets['skipped'].append(entry)
 
     def totals(self):
         return {k: len(v) for k, v in self._buckets.items()}
 
-    def write(self, path, dry_run):
-        """Append digest to path and return the formatted string."""
+    def write_json(self, path: str, dry_run: bool) -> dict:
+        """Write structured JSON digest (overwrites on each run)."""
+        data = {
+            'run_at': datetime.now(timezone.utc).isoformat(),
+            'dry_run': dry_run,
+            'account': self._account,
+            'summary': {
+                'total_messages_scanned': self._total_scanned,
+                'deleted': len(self._buckets['deleted']),
+                'digest_collected': len(self._buckets['digest_collected']),
+                'kept': len(self._buckets['kept']),
+                'skipped': len(self._buckets['skipped']),
+                'pending_classification': len(self._pending_senders),
+            },
+            'attention_items': self._attention_items,
+            'pending_senders': self._pending_senders,
+            'digest_items': self._buckets['digest_collected'],
+            'deleted_items': self._buckets['deleted'],
+        }
+        atomic_write_json(path, data)
+        return data
+
+    def write_txt(self, path: str, dry_run: bool) -> str:
+        """Append human-readable digest to path (accumulates across runs)."""
         prefix = '[DRY RUN] ' if dry_run else ''
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         lines = [
@@ -367,28 +411,41 @@ class Digest:
             f'Email Hygiene Digest  {prefix}{now}',
             '=' * 60,
             '',
+            (f"Scanned: {self._total_scanned} | "
+             f"Deleted: {len(self._buckets['deleted'])} | "
+             f"Digest: {len(self._buckets['digest_collected'])} | "
+             f"Pending: {len(self._pending_senders)}"),
+            '',
         ]
-        section_labels = [
-            ('deleted',           'Deleted'),
-            ('archived',          f'Archived (→ {ARCHIVE_FOLDER})'),
-            ('flagged_attention', 'Flagged for attention'),
-            ('summarized',        'Queued for summary'),
-        ]
-        for key, label in section_labels:
-            entries = self._buckets[key]
-            lines.append(f'### {label}: {len(entries)}')
-            for e in entries:
+        if self._attention_items:
+            lines.append(f'### ATTENTION ({len(self._attention_items)})')
+            for e in self._attention_items:
                 lines.append(f"  [{e['uid']}] {e['sender']}")
-                if e['subject']:
-                    lines.append(f"       Subject: {e['subject']}")
-                if e['reason']:
-                    lines.append(f"       Reason:  {e['reason']}")
+                lines.append(f"       {e['subject']}")
+                lines.append(f"       Keywords: {', '.join(e['keywords_matched'])}")
             lines.append('')
-
+        if self._pending_senders:
+            lines.append(f'### Pending classification ({len(self._pending_senders)})')
+            for p in self._pending_senders:
+                lines.append(f"  {p['sender']}")
+            lines.append('')
+        lines.append(f'### Deleted ({len(self._buckets["deleted"])})')
+        for e in self._buckets['deleted']:
+            lines.append(f"  [{e['uid']}] {e['sender']} ({e.get('age_days', '?')}d)")
+        lines.append('')
+        lines.append(f'### Digest collected ({len(self._buckets["digest_collected"])})')
+        for e in self._buckets['digest_collected']:
+            flag = ' [!]' if e.get('attention') else ''
+            lines.append(f"  [{e['uid']}] {e['sender']}{flag}")
+        lines.append('')
         content = '\n'.join(lines)
         with open(path, 'a', encoding='utf-8') as fh:
             fh.write(content + '\n')
         return content
+
+    def write(self, path, dry_run):
+        """Legacy alias for write_txt (used by main() until Task 8)."""
+        return self.write_txt(path, dry_run)
 
 
 # ---------------------------------------------------------------------------
@@ -597,7 +654,7 @@ def main():
 
     # --- Phase 3: Determine action per message ----------------------------
     print('Determining actions…')
-    digest = Digest()
+    digest = Digest(os.getenv('IMAP_ACCOUNT', 'yahoo'))
 
     to_delete = []
     to_archive = []

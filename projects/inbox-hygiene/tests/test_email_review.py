@@ -171,3 +171,87 @@ class TestDecideAction:
         action, _, _, _ = self._decide(
             'junk@x.com', 'sale', _dt(10), {'junk@x.com': 'delete'}, min_age=7)
         assert action == 'delete'
+
+
+import json
+import tempfile
+
+
+class TestDigest:
+    def _make_digest(self, account='yahoo'):
+        return er.Digest(account)
+
+    def _dt_obj(self, days_ago=1):
+        return datetime.now(timezone.utc) - timedelta(days=days_ago)
+
+    def test_totals_empty(self):
+        d = self._make_digest()
+        t = d.totals()
+        assert t['deleted'] == 0
+        assert t['digest_collected'] == 0
+
+    def test_record_delete(self):
+        d = self._make_digest()
+        d.record('delete', 'junk@x.com', 100, 'Sale!', dt=self._dt_obj(31))
+        assert d.totals()['deleted'] == 1
+
+    def test_record_collect_digest_no_attention(self):
+        d = self._make_digest()
+        d.record('collect_digest', 'news@x.com', 200, 'Weekly', dt=self._dt_obj(1),
+                 attention=False, keywords_matched=[])
+        assert d.totals()['digest_collected'] == 1
+
+    def test_record_collect_digest_with_attention(self):
+        d = self._make_digest()
+        d.record('collect_digest', 'bank@x.com', 300, 'Fatura vencendo',
+                 dt=self._dt_obj(1), attention=True, keywords_matched=['fatura'])
+        assert d.totals()['digest_collected'] == 1
+
+    def test_write_json_structure(self):
+        d = self._make_digest('yahoo')
+        d.set_total_scanned(50)
+        d.record('delete', 'junk@x.com', 100, 'Sale!', dt=self._dt_obj(31))
+        d.record('collect_digest', 'bank@x.com', 200, 'Fatura vencendo',
+                 dt=self._dt_obj(1), attention=True, keywords_matched=['fatura'])
+        d.set_pending_senders([{'sender': 'new@x.com', 'subject': 'hi'}])
+
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            path = f.name
+
+        data = d.write_json(path, dry_run=False)
+
+        assert data['account'] == 'yahoo'
+        assert data['dry_run'] is False
+        assert data['summary']['total_messages_scanned'] == 50
+        assert data['summary']['deleted'] == 1
+        assert data['summary']['digest_collected'] == 1
+        assert data['summary']['pending_classification'] == 1
+        assert len(data['attention_items']) == 1
+        assert data['attention_items'][0]['sender'] == 'bank@x.com'
+        assert data['attention_items'][0]['attention'] is True
+        assert 'fatura' in data['attention_items'][0]['keywords_matched']
+        assert len(data['deleted_items']) == 1
+        assert len(data['digest_items']) == 1
+
+        # verify file was written and parses correctly
+        with open(path) as f:
+            on_disk = json.load(f)
+        assert on_disk['account'] == 'yahoo'
+
+    def test_write_json_dry_run_flag(self):
+        d = self._make_digest()
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            path = f.name
+        data = d.write_json(path, dry_run=True)
+        assert data['dry_run'] is True
+
+    def test_write_txt_appends(self):
+        d = self._make_digest()
+        d.set_total_scanned(10)
+        with tempfile.NamedTemporaryFile(suffix='.txt', mode='w', delete=False) as f:
+            path = f.name
+        d.write_txt(path, dry_run=False)
+        d.write_txt(path, dry_run=False)
+        with open(path) as f:
+            content = f.read()
+        assert content.count('Email Hygiene Digest') == 2
