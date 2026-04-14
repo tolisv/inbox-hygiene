@@ -30,317 +30,128 @@ A solução precisa equilibrar quatro necessidades:
 
 ### Conta Yahoo
 
-A conta Yahoo é usada principalmente como caixa de junk mail, propagandas e newsletters.
-
-Apesar disso, ainda recebe alguns e-mails importantes ou úteis, como por exemplo:
-- Latam
-- Itaú
-- Apple
-- assinaturas diversas
-- notificações e comprovantes
-
-Já existe uma automação inicial para essa conta, via script Python, capaz de:
-- analisar remetentes de uma janela recente
-- classificar remetentes
-- apagar mensagens de certos remetentes
-- extrair conteúdo de alguns e-mails para resumo
-
-Essa automação resolve apenas parte do problema.
+A conta Yahoo é usada principalmente como caixa de junk mail, propagandas e newsletters. Ainda recebe alguns e-mails importantes ou úteis:
+- Latam, Apple, Itaú
+- Newsletters de interesse (produtividade, economia, geopolítica, culinária)
+- Notificações e comprovantes
+- Marketing tolerado (Backroads, Condé Nast) — continua por escolha, mas não é prioridade
 
 ### Outras contas no escopo futuro
 
-A lógica pensada aqui poderá ser aplicada também a:
 - Gmail pessoal
 - iCloud
 - ATV Partners
+- Ergondata (sem automação destrutiva ainda — exige política de negócio aprovada)
 
-### Conta Ergondata
+---
 
-A conta de e-mail da Ergondata ainda não deve entrar em automação destrutiva.
+## Sistema atual (implementado em Abril 2026)
 
-Antes disso, será necessário decidir uma política específica para e-mails de negócio.
+### 3 categorias
 
-## Hipóteses e racional já definidos
+Simplificamos de 5 para 3 categorias:
 
-- E-mails com mais de 30 dias têm baixíssima chance de serem lidos
-- E-mails com mais de 90 dias dificilmente serão acessados, salvo quando funcionam como registro
-- Nem todo e-mail que precisa ser guardado precisa continuar na inbox
-- O sistema deve separar claramente o que é lixo, referência, revisão e ação
+| Categoria | Descrição | Ação do script | Retenção |
+|-----------|-----------|----------------|----------|
+| `delete` | Junk puro, marketing sem valor, spam | Apaga com ≥ 30 dias de idade | 30 dias mínimos |
+| `digest` | Newsletters, conteúdo de interesse, não-VIP não-junk | Coleta em `for_digest.txt`, nunca apaga | Indefinida |
+| `keep` | VIP, pessoal, banco crítico | Nenhuma ação | Indefinida |
 
-## Meta principal
+### Migração das categorias legadas
 
-Permitir que a inbox contenha apenas o que ainda tem chance real de leitura, revisão ou ação.
+| Categoria antiga | Categoria nova |
+|-----------------|----------------|
+| `delete` | `delete` |
+| `summarize` | `digest` |
+| `archive_reference` | `digest` |
+| `needs_attention` | `keep` |
+| `keep_never_auto` | `keep` |
 
-Todo o restante deve ser:
-- apagado com segurança
-- arquivado como referência
-- resumido
-- ou classificado para revisão posterior
+A migração é feita automaticamente na primeira execução com o novo script.
 
-## Taxonomia proposta
+### Detecção de keywords
 
-### 1. delete
+Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verificadas **somente em emails `digest`**:
+- Para `delete` e `keep`, não há verificação de keyword — confia-se na classificação do remetente
+- Quando encontrada num email `digest`, adiciona `attention: true` no `digest.json` sem mudar a ação
+- Isso permite ao OpenClaw filtrar itens urgentes sem que o script tome decisões destrutivas
 
-E-mails descartáveis, promocionais, junk, newsletters irrelevantes, marketing repetitivo, ofertas sem valor, ruído puro.
+### Retenção
 
-Ação esperada:
-- apagar automaticamente ou quase automaticamente
-- retenção curta
+- `delete`: mínimo 30 dias (era 7 dias — aumentado para segurança)
+- `digest` e `keep`: sem deleção automática
 
-### 2. archive_reference
+---
 
-E-mails que raramente serão lidos, mas que podem precisar ser recuperados como registro.
+## Integração com OpenClaw
 
-Exemplos:
-- recibos
-- comprovantes
-- confirmações
-- renovações
-- itinerários
-- algumas notificações bancárias
-- alguns registros de saúde, compra ou assinatura
+O OpenClaw é o agente autônomo que opera este sistema diariamente:
 
-Ação esperada:
-- tirar da inbox
-- arquivar ou mover para pasta/label de referência
-- opcionalmente extrair metadados importantes
+1. Executa `run_yahoo.sh` via cron (7h da manhã)
+2. Lê `data/yahoo/digest.json` após a execução
+3. Notifica o usuário se houver itens com `attention: true` (faturas, vencimentos)
+4. Apresenta `pending_senders` para classificação na próxima interação disponível
+5. Atualiza `senders.json` com a classificação confirmada pelo usuário
 
-### 3. summarize
+Para mais detalhes, ver `AGENT.md`.
 
-E-mails informativos que não exigem ação imediata, mas podem gerar valor se forem condensados.
+---
 
-Exemplos:
-- newsletters selecionadas
-- updates de mercado
-- conteúdos com potencial de insight
+## Estrutura do projeto
 
-Ação esperada:
-- extrair conteúdo
-- gerar resumos periódicos
-- remover da inbox ou reduzir visibilidade
+```
+projects/inbox-hygiene/
+  scripts/
+    email_review.py      # script principal (account-agnostic)
+    run_yahoo.sh         # wrapper Yahoo
+    email_creds.env      # credenciais IMAP (não versionado)
+    README.md
+  data/
+    yahoo/
+      senders.json       # mapa remetente → categoria
+      state.json         # last_uid, pending_senders
+      digest.json        # digest estruturado (OpenClaw consome)
+      digest.txt         # log legível (histórico acumulado)
+      for_digest.txt     # conteúdo bruto para LLM futuro
+  tests/
+    test_email_review.py
+  AGENT.md               # brief para o OpenClaw
+  higiene-e-mails.md     # este arquivo
+```
 
-### 4. needs_attention
-
-E-mails que podem exigir leitura, decisão, resposta, pagamento, acompanhamento ou ação operacional.
-
-Exemplos:
-- alertas importantes
-- faturas
-- cobranças
-- alteração de voo
-- renovação crítica
-- aviso de segurança
-- verificação de conta
-- pendências bancárias
-
-Ação esperada:
-- nunca apagar automaticamente
-- destacar para revisão
-- eventualmente gerar fila de ação
-
-### 5. keep_never_auto
-
-E-mails, remetentes ou categorias que nunca devem entrar em automação destrutiva.
-
-Exemplos:
-- contatos sensíveis
-- mensagens consideradas VIP
-- qualquer categoria que exija cautela máxima
-
-Ação esperada:
-- manter preservado
-- nenhuma exclusão automática
-
-## Critérios de classificação
-
-A decisão não deve depender apenas do remetente.
-
-A classificação ideal deve considerar quatro camadas:
-
-### Camada 1. Conta
-
-Cada conta terá política própria.
-
-- Yahoo: política mais agressiva
-- Gmail pessoal: política intermediária e mais cuidadosa
-- iCloud: política conservadora
-- ATV Partners: política própria, com separação entre relacionamento útil e ruído
-- Ergondata: por enquanto, sem automação destrutiva
-
-### Camada 2. Remetente
-
-Remetente é um bom primeiro filtro, especialmente para campanhas, newsletters, bancos, companhias aéreas e serviços recorrentes.
-
-### Camada 3. Conteúdo
-
-O sistema deve evoluir para considerar padrões de assunto e palavras-chave.
-
-Exemplos de palavras ou sinais de alta importância:
-- código
-- verification
-- segurança
-- pagamento
-- vencimento
-- fatura
-- recibo
-- comprovante
-- itinerário
-- alteração
-- renovação
-- cancelamento
-- alerta
-
-### Camada 4. Tempo
-
-Tempo é essencial para retenção e priorização.
-
-Regras iniciais sugeridas:
-- até 7 dias: janela de alta relevância
-- até 30 dias: ainda pode haver leitura e ação
-- acima de 30 dias: baixa chance de leitura
-- acima de 90 dias: quase sempre candidato a arquivo ou descarte, salvo valor de registro
-
-## Políticas iniciais por conta
-
-### Yahoo
-
-Objetivo: ambiente de laboratório do projeto.
-
-Estratégia:
-- delete mais agressivo
-- summarize para informativos úteis
-- archive_reference para confirmações, recibos, viagens, saúde, assinaturas e registros relevantes
-- needs_attention para tudo que sinalize risco, prazo ou ação
-
-### Gmail pessoal
-
-Estratégia:
-- menos deleção automática
-- mais arquivamento e detecção de ação
-- alta cautela com segurança, banco, viagem e identidade digital
-
-### iCloud
-
-Estratégia:
-- foco em segurança, Apple, identidade digital, compras e contas
-- política conservadora
-
-### ATV Partners
-
-Estratégia:
-- separar ruído comercial de oportunidades reais, relacionamento útil, financeiro e operação
-- evitar deleção automática até entender melhor os padrões
-
-### Ergondata
-
-Estratégia inicial:
-- somente mapeamento, classificação e sinalização
-- sem deleção automática até existir política de negócio aprovada
-
-## Retenção sugerida por categoria
-
-### delete
-- retenção de 7 a 30 dias, conforme confiança na regra
-
-### archive_reference
-- retenção longa ou arquivamento fora da inbox
-- pode variar de 90 a 365 dias ou mais, dependendo do tipo
-
-### summarize
-- manter só o necessário para gerar resumo e histórico útil
-
-### needs_attention
-- manter até resolução
-
-### keep_never_auto
-- sem retenção automática destrutiva
-
-## Medidas para reduzir a sensação de perda
-
-O sistema deve ser desenhado para evitar arrependimento.
-
-Para isso, precisa ter:
-- modo report-only ou dry-run
-- logs do que seria apagado
-- digest do que foi apagado, resumido, arquivado ou sinalizado
-- lista de pendências e possíveis ações
-- rastreabilidade suficiente para auditoria posterior
-
-A meta é que a automação pareça uma triagem confiável, e não uma caixa-preta destrutiva.
+---
 
 ## Fases do projeto
 
-### Fase 1. Mapeamento
+### Fase 1 — Implementado ✓
 
-Objetivo:
-- listar remetentes por conta
-- medir frequência e volume
-- identificar tipos recorrentes de mensagem
-- mapear categorias prováveis
+- Script Python com 3 categorias
+- Retenção mínima de 30 dias para `delete`
+- Digest estruturado em JSON para OpenClaw consumir
+- Migração automática do `senders.json` existente
+- Integração com OpenClaw via `AGENT.md`
+- Repositório privado no GitHub: `tolisv/inbox-hygiene`
 
-### Fase 2. Taxonomia e regras
+### Fase 2 — Próxima
 
-Objetivo:
-- consolidar categorias
-- definir regras por conta
-- definir retenção
-- definir exceções
-- definir remetentes VIP
-- definir palavras-chave de atenção
+- OpenClaw lê `digest.json` no heartbeat e notifica o usuário
+- Classificação de senders pendentes via chat com o OpenClaw
 
-### Fase 3. Execução segura
+### Fase 3 — Futura
 
-Objetivo:
-- rodar em modo report-only
-- classificar sem apagar
-- produzir relatórios e pendências
+- LLM processa `for_digest.txt`, extrai insights
+- Grava em `raw/` do vault Obsidian no Mac Studio (estilo Karpathy)
 
-### Fase 4. Automação parcial
+### Fase 4 — Futura
 
-Objetivo:
-- automatizar apenas casos de baixíssimo risco
-- resumir informativos úteis
-- arquivar referências
-- destacar o que exige ação
+- Expansão para Gmail, iCloud, ATV Partners com políticas próprias
 
-### Fase 5. Expansão multi-conta
-
-Objetivo:
-- replicar a abordagem nas outras caixas
-- adaptar política por conta
-- amadurecer critérios
-
-## Situação atual da automação existente
-
-No momento existe um script para a conta Yahoo que:
-- analisa mensagens de uma janela recente
-- classifica remetentes
-- deleta mensagens de remetentes classificados para deleção
-- extrai mensagens de remetentes classificados para resumo
-- guarda estado em arquivos locais
-
-Limitações atuais percebidas:
-- modelo de classificação ainda simples demais
-- ausência de dry-run implementado no código atual
-- lógica ainda muito orientada a remetente
-- parte destrutiva exige cautela adicional
-- ainda não existe uma camada mais inteligente para detectar ação, referência e risco
-
-## Direção desejada para a próxima iteração
-
-A próxima evolução do projeto deve buscar:
-- classes mais ricas do que delete/summarize/keep
-- modo seguro de operação
-- retenção por regra
-- distinção entre leitura, ação e preservação como registro
-- visão por conta de e-mail
-- mecanismos de revisão periódica e digest
+---
 
 ## Critério de sucesso
 
 O projeto será bem-sucedido quando:
-- as caixas estiverem mais limpas
-- a inbox representar apenas o que ainda importa
-- houver baixo medo de perder algo relevante
-- existir confiança suficiente para delegar parte importante da triagem
-- o sistema puder ser adaptado entre contas com políticas diferentes
+- As caixas estiverem mais limpas sem medo de perder algo relevante
+- O OpenClaw notificar proativamente sobre itens que exigem atenção
+- O usuário conseguir classificar remetentes novos via chat, sem abrir o terminal
+- O conteúdo de newsletters úteis estiver acessível via Obsidian

@@ -1,67 +1,107 @@
-# Daily Email Review Automation
+# Email Hygiene — Scripts
 
-This directory contains scripts to automate daily review of your Yahoo email inbox, including message classification, deletion, and summary extraction for later processing.
+Automação de higiene do inbox Yahoo via IMAP. Classifica remetentes em 3 categorias, apaga junk com ≥ 30 dias, e produz um digest estruturado para o OpenClaw consumir.
 
-## Components
+## Componentes
 
-- **email_review.py**: Python script that:
-  1. Loads IMAP credentials from environment variables (via `email_creds.env`).
-  2. Connects to Yahoo IMAP and fetches unique senders of messages in the last 90 days using batched header fetches.
-  3. Maintains `data/senders.json` mapping senders to a classification: `delete`, `summarize`, or `keep`.
-  4. In interactive mode, prompts for any new senders to classify them. In non-interactive mode (e.g. cron), defers unclassified senders to `data/state.json` for later review.
-  5. Automatically deletes all messages from `delete`-classified senders (no confirmation prompt).
-  6. For `summarize` senders, fetches new message bodies (plain text only, stripping link lines) and appends them to `data/for_summary.txt`.
-  7. Messages from `keep` senders are left untouched.
-  8. Tracks the last-processed message UID in `data/state.json` to avoid re-summarizing.
+- **email_review.py** — Script principal (account-agnostic):
+  1. Carrega `senders.json` e migra categorias legadas automaticamente
+  2. Conecta ao IMAP e busca headers em batch
+  3. Para cada mensagem, decide a ação: `delete`, `collect_digest`, `keep`, ou `skip`
+  4. Apaga mensagens `delete` com ≥ 30 dias de idade
+  5. Coleta conteúdo de emails `digest` em `for_digest.txt`
+  6. Grava `digest.json` (estruturado, sobrescrito) e `digest.txt` (histórico acumulado)
+  7. Salva `state.json` com `last_uid` e `pending_senders`
 
-- **email_review.sh**: Shell wrapper that sets up the `data/` directory (with secure permissions), initializes state files if missing, loads credentials from `email_creds.env`, and invokes the Python script.
+- **run_yahoo.sh** — Wrapper para a conta Yahoo:
+  - Carrega credenciais de `email_creds.env`
+  - Define `--data-dir` apontando para `data/yahoo/`
+  - Cria diretório e arquivos iniciais se necessário
+  - Encaminha todos os argumentos extras para `email_review.py`
 
-- **email_creds.env**: (Not version-controlled) Environment file containing your IMAP login credentials. See below.
+- **email_creds.env** — Credenciais IMAP (não versionado):
+  ```bash
+  IMAP_USER="seu_email@yahoo.com"
+  IMAP_PASS="sua_senha_de_app"
+  # Opcional:
+  # IMAP_HOST="imap.mail.yahoo.com"
+  # IMAP_PORT="993"
+  ```
+
+## Categorias
+
+| Categoria | Descrição | Ação |
+|-----------|-----------|------|
+| `delete` | Junk puro, marketing sem valor | Apaga com ≥ 30 dias de idade |
+| `digest` | Newsletters, conteúdo de interesse | Coleta em `for_digest.txt`, nunca apaga |
+| `keep` | VIP, pessoal, banco crítico | Nenhuma ação |
 
 ## Setup
 
-1. **Ensure Python 3 is installed** (no additional packages required).
-2. **Create your credentials file** at `scripts/email_creds.env` (this file should _not_ be committed to version control):
+1. Crie o arquivo de credenciais em `scripts/email_creds.env`
+2. Dê permissão de execução ao wrapper:
    ```bash
-   IMAP_USER="your_yahoo_email_address"
-   IMAP_PASS="your_app_password_or_token"
-   # Optionally override defaults:
-   # IMAP_HOST="imap.mail.yahoo.com"
-   # IMAP_PORT="993"
+   chmod +x scripts/run_yahoo.sh
    ```
-3. **Make the shell wrapper executable** (if not already):
+3. (Opcional) Crie o virtualenv e instale dependências:
    ```bash
-   chmod +x scripts/email_review.sh
+   cd projects/inbox-hygiene
+   python3 -m venv .venv
+   .venv/bin/pip install pytest
    ```
 
-## Usage
+## Uso
 
-Run the wrapper script manually:
 ```bash
-scripts/email_review.sh
+# Dry-run (sempre testar primeiro)
+projects/inbox-hygiene/scripts/run_yahoo.sh --dry-run
+
+# Execução normal
+projects/inbox-hygiene/scripts/run_yahoo.sh
+
+# Opções disponíveis
+--dry-run             # relatório apenas, não modifica nada
+--days N              # janela de busca em dias (padrão: 360)
+--min-age-delete N    # idade mínima para delete (padrão: 30)
+--data-dir PATH       # diretório de dados da conta (definido pelo wrapper)
+--account NAME        # nome da conta para o digest (definido pelo wrapper)
 ```
 
-- The first time you run interactively, for each new sender you will see a preview of their most recent email (subject and snippet) and be prompted to classify the sender as **d**elete, **s**ummarize, or **k**eep.
-- All messages from `delete` senders are automatically deleted and expunged.
-- Messages from `summarize` senders (newer than last run) are appended to `data/for_summary.txt`.
-- Messages from `keep` senders are left in the inbox.
+### Modo interativo
 
-### Non-interactive mode
+Na primeira execução ou ao encontrar remetentes novos, o script exibe o subject mais recente e pergunta:
 
-When run without a tty (e.g. from cron), new unclassified senders are saved to `data/state.json` under `pending_senders` instead of prompting. The next interactive run or manual review can classify them.
+```
+[d]elete / [di]gest / [k]eep?
+```
 
-## Data files
+### Modo não-interativo (cron)
 
-- `senders.json` — sender classification map (`delete` / `summarize` / `keep`)
-- `state.json` — `last_uid` (last processed UID) and optionally `pending_senders` (deferred from non-interactive runs)
-- `for_summary.txt` — accumulated message texts for summarization
+Sem TTY, remetentes não classificados vão para `pending_senders` em `state.json`. O OpenClaw os apresenta ao usuário na próxima interação disponível.
 
-## Cron Job Integration
+## Arquivos de dados
 
-To automate daily runs, add an entry to your crontab. For example, to run every day at 7:00 AM:
+Todos os arquivos ficam em `data/yahoo/`:
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `senders.json` | Mapa remetente → categoria |
+| `state.json` | `last_uid` + `pending_senders` |
+| `digest.json` | Digest estruturado (sobrescrito a cada run) |
+| `digest.txt` | Histórico legível (acumulado) |
+| `for_digest.txt` | Conteúdo bruto de emails `digest` para LLM futuro |
+
+## Testes
+
+```bash
+cd projects/inbox-hygiene
+.venv/bin/pytest tests/ -v
+```
+
+## Integração com cron (via OpenClaw)
 
 ```cron
-0 7 * * * /path/to/your/workspace/scripts/email_review.sh >> /path/to/your/workspace/data/email_review.log 2>&1
+0 7 * * * /path/to/projects/inbox-hygiene/scripts/run_yahoo.sh >> /tmp/email_hygiene.log 2>&1
 ```
 
-Be sure the cron environment can access your `email_creds.env` (absolute paths recommended) and that the workspace directory permissions allow execution.
+Após a execução, o OpenClaw lê `digest.json` e notifica o usuário se houver `attention_items` ou `pending_senders`.
