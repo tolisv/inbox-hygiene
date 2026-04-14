@@ -76,9 +76,7 @@ ATTENTION_KEYWORDS = [
 ]
 
 
-ARCHIVE_FOLDER = 'Archive'
-DEFAULT_MIN_AGE_DELETE = 7
-DEFAULT_MIN_AGE_ARCHIVE = 7
+DEFAULT_MIN_AGE_DELETE = 30
 
 
 # ---------------------------------------------------------------------------
@@ -257,26 +255,6 @@ def batched_store(imap, uid_ints, flag, label, batch_size=50):
         print()
 
 
-def batched_copy_move(imap, uid_ints, dest_folder, batch_size=50):
-    """
-    COPY UIDs to dest_folder then mark \\Deleted in source.
-    Returns count of successfully copied messages.
-    """
-    total = len(uid_ints)
-    copied = 0
-    for i in range(0, total, batch_size):
-        batch = uid_ints[i:i + batch_size]
-        uid_set = ','.join(str(u) for u in batch)
-        res, _ = imap.uid('COPY', uid_set, dest_folder)
-        if res == 'OK':
-            imap.uid('STORE', uid_set, '+FLAGS', r'(\Deleted)')
-            copied += len(batch)
-        print(f'\r  Archived: {min(i + batch_size, total)}/{total}',
-              end='', flush=True)
-    if total:
-        print()
-    return copied
-
 
 # ---------------------------------------------------------------------------
 # Classification and action decision
@@ -443,10 +421,6 @@ class Digest:
             fh.write(content + '\n')
         return content
 
-    def write(self, path, dry_run):
-        """Legacy alias for write_txt (used by main() until Task 8)."""
-        return self.write_txt(path, dry_run)
-
 
 # ---------------------------------------------------------------------------
 # Interactive classification
@@ -523,15 +497,18 @@ def collect_digest(imap, to_collect, digest_raw_file):
 # ---------------------------------------------------------------------------
 
 def parse_args():
-    p = argparse.ArgumentParser(description='Yahoo IMAP email hygiene')
+    p = argparse.ArgumentParser(description='Email hygiene — IMAP (3-category)')
     p.add_argument('--dry-run', action='store_true',
                    help='Report-only: plan actions but do not execute them')
     p.add_argument('--days', type=int, default=360,
                    help='Search window in days (default: 360)')
     p.add_argument('--min-age-delete', type=int, default=DEFAULT_MIN_AGE_DELETE,
                    help=f'Min age in days before deleting (default: {DEFAULT_MIN_AGE_DELETE})')
-    p.add_argument('--min-age-archive', type=int, default=DEFAULT_MIN_AGE_ARCHIVE,
-                   help=f'Min age in days before archiving (default: {DEFAULT_MIN_AGE_ARCHIVE})')
+    p.add_argument('--data-dir', default=None,
+                   help='Path to account data directory '
+                        '(default: <script-dir>/../data/yahoo)')
+    p.add_argument('--account', default='yahoo',
+                   help='Account name written into digest.json (default: yahoo)')
     return p.parse_args()
 
 
@@ -544,37 +521,42 @@ def main():
     dry_run = args.dry_run
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.abspath(os.path.join(script_dir, '..'))
-    data_dir = os.path.join(root_dir, 'data')
+
+    if args.data_dir:
+        data_dir = os.path.abspath(args.data_dir)
+    else:
+        data_dir = os.path.abspath(os.path.join(script_dir, '..', 'data', 'yahoo'))
+
     senders_file = os.path.join(data_dir, 'senders.json')
     state_file = os.path.join(data_dir, 'state.json')
-    summary_file = os.path.join(data_dir, 'for_summary.txt')
-    digest_file = os.path.join(data_dir, 'digest.txt')
+    digest_raw_file = os.path.join(data_dir, 'for_digest.txt')
+    digest_json_file = os.path.join(data_dir, 'digest.json')
+    digest_txt_file = os.path.join(data_dir, 'digest.txt')
 
     os.makedirs(data_dir, exist_ok=True)
 
     if dry_run:
         print('*** DRY RUN MODE — no messages will be modified ***\n')
 
-    # --- Load senders map and migrate legacy entries ----------------------
+    # --- Load senders map and migrate legacy entries -------------------------
     senders_map = {}
     if os.path.exists(senders_file):
         with open(senders_file, 'r', encoding='utf-8') as f:
             senders_map = json.load(f)
     migrated = migrate_senders(senders_map)
     if migrated:
-        print(f'Migrated {migrated} legacy "keep" → "keep_never_auto" entries.')
+        print(f'Migrated {migrated} legacy sender(s) to 3-category system.')
         if not dry_run:
             atomic_write_json(senders_file, senders_map)
 
-    # --- Load state -------------------------------------------------------
+    # --- Load state ----------------------------------------------------------
     state = {}
     if os.path.exists(state_file):
         with open(state_file, 'r', encoding='utf-8') as f:
             state = json.load(f)
     last_uid = state.get('last_uid', 0)
 
-    # --- Credentials ------------------------------------------------------
+    # --- Credentials ---------------------------------------------------------
     IMAP_HOST = os.getenv('IMAP_HOST', 'imap.mail.yahoo.com')
     IMAP_PORT = int(os.getenv('IMAP_PORT', '993'))
     IMAP_USER = os.getenv('IMAP_USER')
@@ -585,7 +567,7 @@ def main():
 
     imap = ImapConn(IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASS)
 
-    # --- Phase 1: Search and fetch headers --------------------------------
+    # --- Phase 1: Search and fetch headers -----------------------------------
     cutoff = (datetime.now(timezone.utc) - timedelta(days=args.days)).strftime('%d-%b-%Y')
     print(f'Searching messages since {cutoff} ({args.days} days)…')
     res, data = imap.uid('SEARCH', None, f'(SINCE {cutoff})')
@@ -602,10 +584,9 @@ def main():
 
     print('Fetching headers…')
     messages = batch_fetch_headers(imap, uid_list)
-    # messages: list of (uid:int, sender:str, subject:str, date:datetime|None)
 
-    # Build per-sender latest info for preview during classification
-    sender_latest = {}  # sender -> (uid, subject, date)
+    # Build per-sender latest info for interactive classification preview
+    sender_latest = {}
     for uid, sender, subject, dt in messages:
         if sender not in sender_latest or uid > sender_latest[sender][0]:
             sender_latest[sender] = (uid, subject, dt)
@@ -615,7 +596,7 @@ def main():
     print(f'  Unique senders: {len(sender_latest)}, '
           f'classified: {classified_count}, new: {len(new_senders)}')
 
-    # --- Phase 2: Classify new senders ------------------------------------
+    # --- Phase 2: Classify new senders ---------------------------------------
     interactive = sys.stdin.isatty()
     pending_senders = []
 
@@ -645,36 +626,30 @@ def main():
             atomic_write_json(senders_file, senders_map)
         print()
 
-    # --- Phase 3: Determine action per message ----------------------------
+    # --- Phase 3: Determine action per message --------------------------------
     print('Determining actions…')
-    digest = Digest(os.getenv('IMAP_ACCOUNT', 'yahoo'))
+    digest = Digest(args.account)
 
     to_delete = []
-    to_archive = []
-    to_flag = []
-    to_summarize = []  # only messages newer than last_uid
+    to_collect = []  # (uid, sender, subject, dt) — only newer than last_uid
 
     for uid, sender, subject, dt in messages:
-        action, reason = decide_action(
-            sender, subject, dt, senders_map,
-            args.min_age_delete, args.min_age_archive)
+        action, reason, attention, keywords_matched = decide_action(
+            sender, subject, dt, senders_map, args.min_age_delete)
 
-        digest.record(action, sender, uid, subject, reason)
+        digest.record(action, sender, uid, subject, dt, reason, attention, keywords_matched)
 
         if action == 'delete':
             to_delete.append(uid)
-        elif action == 'archive':
-            to_archive.append(uid)
-        elif action == 'flag_attention':
-            to_flag.append(uid)
-        elif action == 'summarize' and uid > last_uid:
-            to_summarize.append((uid, sender, subject, dt))
+        elif action == 'collect_digest' and uid > last_uid:
+            to_collect.append((uid, sender, subject, dt))
 
     totals = digest.totals()
-    print(f'  Planned: {totals["deleted"]} delete, {totals["archived"]} archive, '
-          f'{totals["flagged_attention"]} flag, {totals["summarized"]} summarize')
+    print(f'  Planned: {totals["deleted"]} delete, '
+          f'{totals["digest_collected"]} collect, '
+          f'{totals["kept"]} keep')
 
-    # --- Phase 4a: Delete -------------------------------------------------
+    # --- Phase 4a: Delete ----------------------------------------------------
     if to_delete:
         if dry_run:
             print(f'[DRY RUN] Would delete {len(to_delete)} message(s).')
@@ -686,55 +661,35 @@ def main():
     else:
         print('No messages to delete.')
 
-    # --- Phase 4b: Archive ------------------------------------------------
-    if to_archive:
+    # --- Phase 4b: Collect digest content ------------------------------------
+    to_collect.sort(key=lambda x: x[0])
+    if to_collect:
         if dry_run:
-            print(f'[DRY RUN] Would archive {len(to_archive)} message(s) → {ARCHIVE_FOLDER}.')
+            print(f'[DRY RUN] Would collect {len(to_collect)} message(s) for digest.')
         else:
-            print(f'Archiving {len(to_archive)} message(s) → {ARCHIVE_FOLDER}…')
-            imap.ensure_folder(ARCHIVE_FOLDER)
-            copied = batched_copy_move(imap, to_archive, ARCHIVE_FOLDER)
-            imap.expunge()
-            print(f'  Archived {copied} message(s).')
-    else:
-        print('No messages to archive.')
-
-    # --- Phase 4c: Flag attention -----------------------------------------
-    if to_flag:
-        if dry_run:
-            print(f'[DRY RUN] Would flag {len(to_flag)} message(s) as needs-attention.')
-        else:
-            print(f'Flagging {len(to_flag)} message(s) as needs-attention…')
-            batched_store(imap, to_flag, r'(\Flagged)', 'Flagged attention')
-    else:
-        print('No messages to flag for attention.')
-
-    # --- Phase 4d: Summarize ----------------------------------------------
-    to_summarize.sort(key=lambda x: x[0])
-    if to_summarize:
-        if dry_run:
-            print(f'[DRY RUN] Would queue {len(to_summarize)} message(s) for summary.')
-        else:
-            print(f'Extracting {len(to_summarize)} message(s) to for_summary.txt…')
-            append_summaries(imap, to_summarize, summary_file)
+            print(f'Collecting {len(to_collect)} message(s) → for_digest.txt…')
+            collect_digest(imap, to_collect, digest_raw_file)
             print('  Done.')
     else:
-        print('No new messages to summarize.')
+        print('No new messages to collect for digest.')
 
-    # --- Phase 5: Digest --------------------------------------------------
-    digest_content = digest.write(digest_file, dry_run)
+    # --- Phase 5: Write digest -----------------------------------------------
+    digest.set_total_scanned(len(messages))
+    digest.set_pending_senders(pending_senders)
+
+    digest.write_json(digest_json_file, dry_run)
+    digest_content = digest.write_txt(digest_txt_file, dry_run)
     print()
     print(digest_content)
 
-    # --- Phase 6: Save state ----------------------------------------------
+    # --- Phase 6: Save state -------------------------------------------------
     if messages:
         max_uid = max(uid for uid, _, _, _ in messages)
-        if not dry_run:
-            state['last_uid'] = max_uid
         state.pop('pending_senders', None)
         if pending_senders:
             state['pending_senders'] = pending_senders
         if not dry_run:
+            state['last_uid'] = max_uid
             atomic_write_json(state_file, state)
             print(f'State saved (last_uid={max_uid}).')
         else:
