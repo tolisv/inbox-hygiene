@@ -26,15 +26,21 @@ from email.utils import parseaddr, parsedate_to_datetime
 # Configuration
 # ---------------------------------------------------------------------------
 
-CATEGORIES = ('delete', 'archive_reference', 'summarize', 'needs_attention', 'keep_never_auto')
+CATEGORIES = ('delete', 'digest', 'keep')
+
+LEGACY_CATEGORY_MAP = {
+    'keep_never_auto': 'keep',
+    'needs_attention': 'keep',
+    'summarize': 'digest',
+    'archive_reference': 'digest',
+    'keep': 'keep',      # safety: legacy keep from oldest version
+}
 
 # Prompts shown when classifying new senders interactively
 CATEGORY_PROMPTS = (
     '[d]elete',
-    '[a]rchive_reference',
-    '[s]ummarize',
-    '[n]eeds_attention',
-    '[k]eep_never_auto',
+    '[di]gest',
+    '[k]eep',
 )
 
 # Subject keywords that upgrade any classification to needs_attention.
@@ -282,12 +288,15 @@ def batched_copy_move(imap, uid_ints, dest_folder, batch_size=50):
 # ---------------------------------------------------------------------------
 
 def migrate_senders(senders_map):
-    """Migrate legacy 'keep' → 'keep_never_auto'. Returns count migrated."""
+    """Migrate legacy category names to the 3-category system (delete/digest/keep).
+    Returns count of entries migrated."""
     migrated = 0
-    for sender, cls in senders_map.items():
-        if cls == 'keep':
-            senders_map[sender] = 'keep_never_auto'
-            migrated += 1
+    for sender, cls in list(senders_map.items()):
+        if cls not in CATEGORIES:
+            new_cls = LEGACY_CATEGORY_MAP.get(cls)
+            if new_cls:
+                senders_map[sender] = new_cls
+                migrated += 1
     return migrated
 
 
