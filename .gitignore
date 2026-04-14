@@ -1,2 +1,27 @@
-# Ignorar arquivo de credenciais de email
+# Credenciais — nunca subir para o GitHub
 email_creds.env
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Arquivos de trabalho na raiz (conteúdo movido para projects/inbox-hygiene/)
+/data/
+/scripts/
+/docs/
+/higiene-e-mails.md
+/Dicas Ubuntu.md
+
+# Arquivos do OpenClaw — ficam só no workspace local
+/AGENTS.md
+/SOUL.md
+/HEARTBEAT.md
+/MEMORY.md
+/TOOLS.md
+/IDENTITY.md
+/USER.md
+/memory/
+/.openclaw/
