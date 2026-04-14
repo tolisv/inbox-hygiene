@@ -1,4 +1,3 @@
-# projects/inbox-hygiene/tests/test_email_review.py
 import sys
 import os
 
