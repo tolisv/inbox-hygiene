@@ -480,10 +480,10 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
 # Summarize: fetch and append full text content
 # ---------------------------------------------------------------------------
 
-def append_summaries(imap, to_summarize, summary_file):
-    """Fetch RFC822 for each message and append plain-text body to summary_file."""
-    with open(summary_file, 'a', encoding='utf-8') as fh:
-        for uid, sender, subj, dt in to_summarize:
+def collect_digest(imap, to_collect, digest_raw_file):
+    """Fetch RFC822 for each message and append plain-text body to digest_raw_file."""
+    with open(digest_raw_file, 'a', encoding='utf-8') as fh:
+        for uid, sender, subj, dt in to_collect:
             res, full = imap.uid('FETCH', str(uid), '(RFC822)')
             if res != 'OK':
                 continue
@@ -508,7 +508,6 @@ def append_summaries(imap, to_summarize, summary_file):
                         errors='ignore')
                 except Exception:
                     pass
-            # Strip lines that are only URLs
             body = '\n'.join(
                 line for line in body.splitlines()
                 if 'http://' not in line and 'https://' not in line)
