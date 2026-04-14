@@ -112,6 +112,10 @@ def attention_keywords_in(subject):
     return [kw for kw in ATTENTION_KEYWORDS if kw.lower() in subj_lower]
 
 
+# Temporary alias — removed when decide_action() is updated in Task 4
+subject_triggers_attention = lambda subject: bool(attention_keywords_in(subject))
+
+
 # ---------------------------------------------------------------------------
 # IMAP connection wrapper
 # ---------------------------------------------------------------------------
