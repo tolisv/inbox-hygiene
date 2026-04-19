@@ -1,0 +1,22 @@
+{
+  "contact@philharmonie-de-paris.fr": "digest",
+  "deliveries@sokolin.com": "digest",
+  "matthew.smith@sokolin.com": "digest",
+
+  "serasa@contato.serasa.com.br": "delete",
+  "serasapremium@comunicados.serasa.com.br": "delete",
+  "conta@brasil.santander.com.br": "delete",
+  "bruno.neri@c6bank.com": "delete",
+  "no_reply@email.apple.com": "delete",
+
+  "no-reply@github.com": "keep",
+  "noreply@github.com": "keep",
+  "noreply@noreply.github.com": "keep",
+  "notifications@github.com": "keep",
+
+  "naoresponda-batchgovbr@economia.gov.br": "keep",
+  "naoresponda-dispositivosgovbr@economia.gov.br": "keep",
+  "idrc-noreply@registrocivil.org.br": "keep",
+  "noreply@registrocivil.org.br": "keep",
+  "protocolo-noreply@registrocivil.org.br": "keep"
+}

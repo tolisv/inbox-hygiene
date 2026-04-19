@@ -521,11 +521,19 @@ Senders to classify:
     client = _anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
         model='claude-haiku-4-5-20251001',
-        max_tokens=1024,
+        max_tokens=4096,
         messages=[{'role': 'user', 'content': prompt}],
     )
 
     raw = response.content[0].text.strip()
+
+    # Strip markdown code fences if model wrapped the JSON
+    if raw.startswith('```'):
+        lines = raw.splitlines()
+        raw = '\n'.join(
+            line for line in lines
+            if not line.strip().startswith('```')
+        ).strip()
 
     try:
         suggestions = json.loads(raw)

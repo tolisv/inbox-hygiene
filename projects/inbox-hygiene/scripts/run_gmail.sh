@@ -37,7 +37,12 @@ if [[ ! -f "$DATA_DIR/senders.json" ]]; then
     echo '{}' > "$DATA_DIR/senders.json"
 fi
 
-exec python3 "$SCRIPT_DIR/email_review.py" \
+PYTHON="$PROJECT_DIR/.venv/bin/python3"
+if [[ ! -f "$PYTHON" ]]; then
+    PYTHON="python3"
+fi
+
+exec "$PYTHON" "$SCRIPT_DIR/email_review.py" \
     --data-dir "$DATA_DIR" \
     --account "gmail" \
     --classify-with-llm \
