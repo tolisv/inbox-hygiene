@@ -1,61 +1,42 @@
 {
-  "run_at": "2026-04-19T00:00:45.397544+00:00",
+  "run_at": "2026-04-19T01:15:18.885806+00:00",
   "dry_run": false,
   "account": "yahoo",
   "summary": {
     "total_messages_scanned": 1000,
-    "deleted": 0,
-    "digest_collected": 824,
-    "kept": 39,
-    "skipped": 137,
-    "pending_classification": 7
+    "deleted": 1,
+    "digest_collected": 805,
+    "kept": 56,
+    "skipped": 138,
+    "pending_classification": 0
   },
   "attention_items": [],
-  "pending_senders": [
-    {
-      "sender": "nate@aiautomationsociety.ai",
-      "latest_uid": 622057,
-      "latest_date": "2026-04-17T12:03:15+00:00",
-      "subject": "Proven AI agent formula that made me $243,599"
-    },
-    {
-      "sender": "no-reply@github.com",
-      "latest_uid": 618868,
-      "latest_date": "2025-12-16T17:52:11+00:00",
-      "subject": "GitHub is updating the Actions pricing structure"
-    },
-    {
-      "sender": "noreply@notifs.skool.com",
-      "latest_uid": 621949,
-      "latest_date": "2026-04-14T01:28:08+00:00",
-      "subject": "6687 is your Skool verification code"
-    },
-    {
-      "sender": "noreply@skool.com",
-      "latest_uid": 622098,
-      "latest_date": "2026-04-18T18:51:41+00:00",
-      "subject": "1 new notification since 2:46 pm (Apr 18, 2026)"
-    },
-    {
-      "sender": "novidades@canal.carlaamorim.com.br",
-      "latest_uid": 622095,
-      "latest_date": "2026-04-18T13:31:13+00:00",
-      "subject": "=?UTF-8?Q?Dia_das_M=C3=A3es_Carla_Amorim._Co?= =?UTF-8?Q?nfira_nossa_sele=C3=A7=C3=A3o_especial.?="
-    },
-    {
-      "sender": "uppitai@mail.beehiiv.com",
-      "latest_uid": 622025,
-      "latest_date": "2026-04-16T12:03:31+00:00",
-      "subject": "=?UTF-8?Q?Where_to_focus_if_you=E2=80=99re_a_b?= =?UTF-8?Q?eginner_(and_not_a_developer)?="
-    },
-    {
-      "sender": "verify@x.com",
-      "latest_uid": 621952,
-      "latest_date": "2026-04-14T02:27:07+00:00",
-      "subject": "New login to X from FirefoxDesktop on Mac"
-    }
-  ],
+  "pending_senders": [],
   "digest_items": [
+    {
+      "uid": 618022,
+      "sender": "membership@membership.177milkstreet.com",
+      "subject": "It's Not Too Late - Renew at Your Lowest Price.",
+      "date": "2025-11-19T13:01:19+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 618013,
+      "sender": "dataengineeringweekly@substack.com",
+      "subject": "The Dark Data Tax: How Hoarding is Poisoning Your AI",
+      "date": "2025-11-19T06:33:14+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 618006,
+      "sender": "news@berliner-philharmoniker-recordings.com",
+      "subject": "New on CD: Kirill Petrenko conducts Johannes Brahms",
+      "date": "2025-11-18T21:01:19+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
     {
       "uid": 617986,
       "sender": "hello@jeffsu.org",
@@ -133,14 +114,6 @@
       "sender": "dataengineeringweekly@substack.com",
       "subject": "Data Engineering Weekly #245",
       "date": "2025-11-10T02:41:51+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 617744,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] The S.M.A.R.T. Learning Framework",
-      "date": "2025-11-10T01:31:52+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -265,14 +238,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 617374,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: How Minds Change",
-      "date": "2025-10-27T00:23:19+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 617357,
       "sender": "jennifer@onceuponachef.com",
       "subject": "Peanut Butter Fudge, Pumpkin Scones, Turkey Meatloaf + More",
@@ -369,14 +334,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 616986,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] 5 Negotiation Habits from Bestsellers",
-      "date": "2025-10-13T18:38:13+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 616971,
       "sender": "dataengineeringweekly@substack.com",
       "subject": "Data Engineering Weekly #241",
@@ -417,26 +374,18 @@
       "keywords_matched": []
     },
     {
-      "uid": 616770,
-      "sender": "dataengineeringweekly@substack.com",
-      "subject": "Data Engineering Weekly #240",
-      "date": "2025-10-06T03:12:44+00:00",
+      "uid": 618625,
+      "sender": "newsletter@mail.infoq.com",
+      "subject": "MySQL Contributions, System Initiative, JEP 526, Vitest 4.0, Next.js 16, Enterprise WASM, Empathy Dr",
+      "date": "2025-12-09T09:07:22+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 616759,
-      "sender": "jennifer@onceuponachef.com",
-      "subject": "Sourdough Bread, Broccoli Cheddar Soup, Apple Muffins + More",
-      "date": "2025-10-05T13:44:51+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 616690,
-      "sender": "jennifer@onceuponachef.com",
-      "subject": "Indonesian Fried Rice, Apple Cinnamon Swirl Bread + More",
-      "date": "2025-10-02T14:06:13+00:00",
+      "uid": 618624,
+      "sender": "ii@investidorinstitucional.com.br",
+      "subject": "=?UTF-8?Q?Pesquisa_Focus_mostra_infla=C3=A7=C3=A3?= =?UTF-8?Q?o_novamente_em_ritmo_de_queda?=",
+      "date": "2025-12-09T05:24:22+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -445,14 +394,6 @@
       "sender": "contato@emkt.b3.com.br",
       "subject": "=?UTF-8?Q?Investidor,_conhe=C3=A7a_o_APP_B3._Todos_?= =?UTF-8?Q?os_seus_investimentos_em_um_s=C3=B3_",
       "date": "2025-12-08T20:31:38+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 618615,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] Perform Under Pressure with the B.R.A.V.E. Method",
-      "date": "2025-12-08T18:16:26+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -641,14 +582,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 618302,
-      "sender": "nathan@productivitygame.com",
-      "subject": "Want a Productive Black Friday Sale?",
-      "date": "2025-11-28T16:30:16+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 618279,
       "sender": "architect-newsletter@mail.infoq.com",
       "subject": "The Software Architects' Newsletter November 2025",
@@ -737,14 +670,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 618152,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Wisdom Takes Work",
-      "date": "2025-11-24T01:47:02+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 618143,
       "sender": "johnathanbi@substack.com",
       "subject": "Capital is Cheap, This is The Last Scarce Resource",
@@ -785,26 +710,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 618022,
-      "sender": "membership@membership.177milkstreet.com",
-      "subject": "It's Not Too Late - Renew at Your Lowest Price.",
-      "date": "2025-11-19T13:01:19+00:00",
+      "uid": 619132,
+      "sender": "team@mail.perplexity.ai",
+      "subject": "Try Comet and work 10x faster",
+      "date": "2025-12-27T18:53:08+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 618013,
-      "sender": "dataengineeringweekly@substack.com",
-      "subject": "The Dark Data Tax: How Hoarding is Poisoning Your AI",
-      "date": "2025-11-19T06:33:14+00:00",
+      "uid": 619101,
+      "sender": "architect-newsletter@mail.infoq.com",
+      "subject": "The Software Architects' Newsletter December 2025",
+      "date": "2025-12-26T09:03:26+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 618006,
-      "sender": "news@berliner-philharmoniker-recordings.com",
-      "subject": "New on CD: Kirill Petrenko conducts Johannes Brahms",
-      "date": "2025-11-18T21:01:19+00:00",
+      "uid": 619062,
+      "sender": "johnathanbi@substack.com",
+      "subject": "In 1884, My Ancestor Wrote Me a Letter...",
+      "date": "2025-12-23T18:49:44+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -1145,18 +1070,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 618625,
-      "sender": "newsletter@mail.infoq.com",
-      "subject": "MySQL Contributions, System Initiative, JEP 526, Vitest 4.0, Next.js 16, Enterprise WASM, Empathy Dr",
-      "date": "2025-12-09T09:07:22+00:00",
+      "uid": 619356,
+      "sender": "special-reports@mail.infoq.com",
+      "subject": "Software Development Round-Up",
+      "date": "2026-01-08T09:05:44+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 618624,
-      "sender": "ii@investidorinstitucional.com.br",
-      "subject": "=?UTF-8?Q?Pesquisa_Focus_mostra_infla=C3=A7=C3=A3?= =?UTF-8?Q?o_novamente_em_ritmo_de_queda?=",
-      "date": "2025-12-09T05:24:22+00:00",
+      "uid": 619355,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "=?UTF-8?Q?O_panorama_da_IA:_bem-vindo_=C3=A0_singularidade_econ=C3=B4mica?=",
+      "date": "2026-01-08T09:02:17+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 619337,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "As redes sociais e o pior do entusiasmo com a IA",
+      "date": "2026-01-07T14:17:10+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -1321,14 +1254,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 619244,
-      "sender": "nathan@productivitygame.com",
-      "subject": "A $5 habit that actually changes your life",
-      "date": "2026-01-02T17:50:03+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 619238,
       "sender": "contato@mittechreview.com.br",
       "subject": "=?UTF-8?Q?Os_14_termos_de_Intelig=C3=AAncia_Artificia?= =?UTF-8?Q?l_que_voc=C3=AA_n=C3=A3o_conseguiu",
@@ -1349,14 +1274,6 @@
       "sender": "news@digitalconcerthall.com",
       "subject": "=?UTF-8?Q?New_playlist:_From_cowbells_to_car_hor?= =?UTF-8?Q?ns_=E2=80=93_special_effects_in_classic",
       "date": "2026-01-02T12:09:47+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 619213,
-      "sender": "nathan@productivitygame.com",
-      "subject": "What would make 2026 a success?",
-      "date": "2025-12-31T18:20:57+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -1513,14 +1430,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 619146,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Peak Performance",
-      "date": "2025-12-29T01:35:49+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 619140,
       "sender": "jennifer@onceuponachef.com",
       "subject": "Kielbasa Bites, Cheese Ball, Shrimp Cocktail + More",
@@ -1537,26 +1446,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 619132,
-      "sender": "team@mail.perplexity.ai",
-      "subject": "Try Comet and work 10x faster",
-      "date": "2025-12-27T18:53:08+00:00",
+      "uid": 619635,
+      "sender": "rufo@substack.com",
+      "subject": "Chaos in Minnesota",
+      "date": "2026-01-18T22:38:01+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619101,
-      "sender": "architect-newsletter@mail.infoq.com",
-      "subject": "The Software Architects' Newsletter December 2025",
-      "date": "2025-12-26T09:03:26+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 619062,
+      "uid": 619631,
       "sender": "johnathanbi@substack.com",
-      "subject": "In 1884, My Ancestor Wrote Me a Letter...",
-      "date": "2025-12-23T18:49:44+00:00",
+      "subject": "Christian Scholar Wrestles With Uncomfortable Evidence",
+      "date": "2026-01-18T16:02:50+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 619630,
+      "sender": "jennifer@onceuponachef.com",
+      "subject": "Breakfast Burritos, Hash Browns, Shakshuka + More",
+      "date": "2026-01-18T14:34:53+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -1769,14 +1678,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 619473,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: The Slight Edge",
-      "date": "2026-01-13T01:37:47+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 619455,
       "sender": "exponentialview@substack.com",
       "subject": "=?UTF-8?Q?=F0=9F=93=88_Data_to_start_your_week?=",
@@ -1937,26 +1838,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 619356,
-      "sender": "special-reports@mail.infoq.com",
-      "subject": "Software Development Round-Up",
-      "date": "2026-01-08T09:05:44+00:00",
+      "uid": 619863,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "Como fazer o custo ambiental da IA virar vantagem competitiva",
+      "date": "2026-01-27T11:02:42+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619355,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?O_panorama_da_IA:_bem-vindo_=C3=A0_singularidade_econ=C3=B4mica?=",
-      "date": "2026-01-08T09:02:17+00:00",
+      "uid": 619859,
+      "sender": "newsletter@mail.infoq.com",
+      "subject": "CyberArk, OpenCost, European Sovereign Cloud, Claude CoWork, Ramp Coding Agent, Open Payment x402, D",
+      "date": "2026-01-27T09:07:41+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619337,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "As redes sociais e o pior do entusiasmo com a IA",
-      "date": "2026-01-07T14:17:10+00:00",
+      "uid": 619858,
+      "sender": "ii@investidorinstitucional.com.br",
+      "subject": "=?UTF-8?Q?Focus_projeta_final_de_2026_com_?= =?UTF-8?Q?infla=C3=A7=C3=A3o_em_queda_e_Selic_est=C3=A1",
+      "date": "2026-01-27T06:50:02+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -2337,26 +2238,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 619635,
-      "sender": "rufo@substack.com",
-      "subject": "Chaos in Minnesota",
-      "date": "2026-01-18T22:38:01+00:00",
+      "uid": 620108,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "=?UTF-8?Q?Quem_paga_para_tirar_CO=E2=82=82_do_ar=3F?=",
+      "date": "2026-02-04T10:01:53+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619631,
-      "sender": "johnathanbi@substack.com",
-      "subject": "Christian Scholar Wrestles With Uncomfortable Evidence",
-      "date": "2026-01-18T16:02:50+00:00",
+      "uid": 620104,
+      "sender": "ii@investidorinstitucional.com.br",
+      "subject": "=?UTF-8?Q?Capta=C3=A7=C3=A3o_l=C3=ADquida_da_previd=C3=AAncia_?= =?UTF-8?Q?aberta_cai_para_R$_3,9_bi",
+      "date": "2026-02-04T05:11:45+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619630,
-      "sender": "jennifer@onceuponachef.com",
-      "subject": "Breakfast Burritos, Hash Browns, Shakshuka + More",
-      "date": "2026-01-18T14:34:53+00:00",
+      "uid": 620097,
+      "sender": "news@berliner-philharmoniker-recordings.com",
+      "subject": "=?UTF-8?Q?Now_available:_The_Berliner_Philharmoniker_and?= =?UTF-8?Q?_Herbert_von_Karajan_=C2=B7_197",
+      "date": "2026-02-03T23:04:32+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -2665,14 +2566,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 619927,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Feel the Fear & Do It Anyway",
-      "date": "2026-01-28T21:15:42+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 619924,
       "sender": "rufo@substack.com",
       "subject": "What Comes After Woke?",
@@ -2737,26 +2630,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 619863,
+      "uid": 620307,
       "sender": "contato@mittechreview.com.br",
-      "subject": "Como fazer o custo ambiental da IA virar vantagem competitiva",
-      "date": "2026-01-27T11:02:42+00:00",
+      "subject": "=?UTF-8?Q?Como_empresas_brasileiras_conv?= =?UTF-8?Q?erteram_inova=C3=A7=C3=A3o_em_resultados=3F?=",
+      "date": "2026-02-11T12:57:15+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619859,
-      "sender": "newsletter@mail.infoq.com",
-      "subject": "CyberArk, OpenCost, European Sovereign Cloud, Claude CoWork, Ramp Coding Agent, Open Payment x402, D",
-      "date": "2026-01-27T09:07:41+00:00",
+      "uid": 620306,
+      "sender": "contato@salajau.com.br",
+      "subject": "=?UTF-8?Q?'O_Pr=C3=ADncipe'_de_Maquiavel:_virt=C3=B9,_Fortuna,_conflito?=",
+      "date": "2026-02-11T12:00:07+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 619858,
-      "sender": "ii@investidorinstitucional.com.br",
-      "subject": "=?UTF-8?Q?Focus_projeta_final_de_2026_com_?= =?UTF-8?Q?infla=C3=A7=C3=A3o_em_queda_e_Selic_est=C3=A1",
-      "date": "2026-01-27T06:50:02+00:00",
+      "uid": 620302,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "=?UTF-8?Q?Data_centers_em_=C3=B3rbita?=",
+      "date": "2026-02-11T10:02:44+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -2829,14 +2722,6 @@
       "sender": "ii@investidorinstitucional.com.br",
       "subject": "=?UTF-8?Q?Org=C3=A3o_do_TCU_n=C3=A3o_v=C3=AA_\"desconformi?= =?UTF-8?Q?dades\"_nos_investimentos_da_Pr",
       "date": "2026-02-10T06:01:43+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620263,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: The Almanack of Naval Ravikant",
-      "date": "2026-02-10T00:45:53+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -3137,26 +3022,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 620108,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Quem_paga_para_tirar_CO=E2=82=82_do_ar=3F?=",
-      "date": "2026-02-04T10:01:53+00:00",
+      "uid": 620503,
+      "sender": "roddreher@substack.com",
+      "subject": "Here Comes Another Big Mideast War",
+      "date": "2026-02-19T13:13:01+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620104,
-      "sender": "ii@investidorinstitucional.com.br",
-      "subject": "=?UTF-8?Q?Capta=C3=A7=C3=A3o_l=C3=ADquida_da_previd=C3=AAncia_?= =?UTF-8?Q?aberta_cai_para_R$_3,9_bi",
-      "date": "2026-02-04T05:11:45+00:00",
+      "uid": 620501,
+      "sender": "rufo@substack.com",
+      "subject": "=?UTF-8?Q?The_=E2=80=9CWhiteness=E2=80=9D_Double_Standard?=",
+      "date": "2026-02-19T13:01:12+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620097,
-      "sender": "news@berliner-philharmoniker-recordings.com",
-      "subject": "=?UTF-8?Q?Now_available:_The_Berliner_Philharmoniker_and?= =?UTF-8?Q?_Herbert_von_Karajan_=C2=B7_197",
-      "date": "2026-02-03T23:04:32+00:00",
+      "uid": 620496,
+      "sender": "team@mail.perplexity.ai",
+      "subject": "Sign in to Perplexity",
+      "date": "2026-02-19T10:12:05+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -3521,26 +3406,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 620307,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Como_empresas_brasileiras_conv?= =?UTF-8?Q?erteram_inova=C3=A7=C3=A3o_em_resultados=3F?=",
-      "date": "2026-02-11T12:57:15+00:00",
+      "uid": 620683,
+      "sender": "boleto.online@paulistano.org.br",
+      "subject": "CAP - Boletos On-line - 10/03/26 - Titular 5714",
+      "date": "2026-02-25T15:30:18+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620306,
-      "sender": "contato@salajau.com.br",
-      "subject": "=?UTF-8?Q?'O_Pr=C3=ADncipe'_de_Maquiavel:_virt=C3=B9,_Fortuna,_conflito?=",
-      "date": "2026-02-11T12:00:07+00:00",
+      "uid": 620681,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "=?UTF-8?Q?A_febre_da_rede_social_Moltbook_foi_como_Pok=C3=A9mon?=",
+      "date": "2026-02-25T14:04:14+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620302,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Data_centers_em_=C3=B3rbita?=",
-      "date": "2026-02-11T10:02:44+00:00",
+      "uid": 620679,
+      "sender": "matheus.corenciuc@xpi.com.br",
+      "subject": "=?UTF-8?Q?Oferta_Exclusiva_para_Voc=C3=AA_=E2=80=93_CDB_XP_104%_do_CDI_?= =?UTF-8?Q?com_liquidez_di=",
+      "date": "2026-02-25T13:36:42+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -3613,14 +3498,6 @@
       "sender": "contato@mittechreview.com.br",
       "subject": "The Checkup | Novo caminho para vacina contra a tuberculose",
       "date": "2026-02-24T17:04:20+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620652,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Who Not How",
-      "date": "2026-02-24T16:45:59+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -3889,26 +3766,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 620503,
+      "uid": 620854,
+      "sender": "industry-notices@mail.infoq.com",
+      "subject": "Struggling to Govern and Orchestrate AI Agents? Start Here.",
+      "date": "2026-03-04T10:05:49+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 620853,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "ChatGPT enfrenta cancelamento",
+      "date": "2026-03-04T10:01:58+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 620851,
       "sender": "roddreher@substack.com",
-      "subject": "Here Comes Another Big Mideast War",
-      "date": "2026-02-19T13:13:01+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620501,
-      "sender": "rufo@substack.com",
-      "subject": "=?UTF-8?Q?The_=E2=80=9CWhiteness=E2=80=9D_Double_Standard?=",
-      "date": "2026-02-19T13:01:12+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620496,
-      "sender": "team@mail.perplexity.ai",
-      "subject": "Sign in to Perplexity",
-      "date": "2026-02-19T10:12:05+00:00",
+      "subject": "The Patriot: Charles Martel In A Business Suit",
+      "date": "2026-03-04T08:38:01+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -4273,26 +4150,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 620683,
-      "sender": "boleto.online@paulistano.org.br",
-      "subject": "CAP - Boletos On-line - 10/03/26 - Titular 5714",
-      "date": "2026-02-25T15:30:18+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620681,
+      "uid": 621059,
       "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?A_febre_da_rede_social_Moltbook_foi_como_Pok=C3=A9mon?=",
-      "date": "2026-02-25T14:04:14+00:00",
+      "subject": "=?UTF-8?Q?Como_foi_um_dos_maiores_protestos_anti-IA_at=C3=A9_agora?=",
+      "date": "2026-03-11T14:02:35+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620679,
-      "sender": "matheus.corenciuc@xpi.com.br",
-      "subject": "=?UTF-8?Q?Oferta_Exclusiva_para_Voc=C3=AA_=E2=80=93_CDB_XP_104%_do_CDI_?= =?UTF-8?Q?com_liquidez_di=",
-      "date": "2026-02-25T13:36:42+00:00",
+      "uid": 621057,
+      "sender": "contato@mittechreview.com.br",
+      "subject": "=?UTF-8?Q?Dados_est=C3=A3o_redefinindo_o_marketing_em_tempo_real?=",
+      "date": "2026-03-11T12:02:43+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 621056,
+      "sender": "contato@salajau.com.br",
+      "subject": "=?UTF-8?Q?=F0=9F=93=86_Veja_os_cursos_de_Abril_da_Sala_Ja=C3=BA!?=",
+      "date": "2026-03-11T12:00:46+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -4365,14 +4242,6 @@
       "sender": "bobpost@mail.beehiiv.com",
       "subject": "=?UTF-8?Q?Eu_n=C3=A3o_aguento_mais.?=",
       "date": "2026-03-09T21:22:15+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 620993,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: How to Listen with Intention",
-      "date": "2026-03-09T17:06:03+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -4609,26 +4478,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 620854,
+      "uid": 621238,
       "sender": "industry-notices@mail.infoq.com",
-      "subject": "Struggling to Govern and Orchestrate AI Agents? Start Here.",
-      "date": "2026-03-04T10:05:49+00:00",
+      "subject": "AI Agent Swarm Patterns",
+      "date": "2026-03-18T10:04:57+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620853,
+      "uid": 621237,
       "sender": "contato@mittechreview.com.br",
-      "subject": "ChatGPT enfrenta cancelamento",
-      "date": "2026-03-04T10:01:58+00:00",
+      "subject": "A engrenagem oculta da IA",
+      "date": "2026-03-18T10:01:34+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 620851,
-      "sender": "roddreher@substack.com",
-      "subject": "The Patriot: Charles Martel In A Business Suit",
-      "date": "2026-03-04T08:38:01+00:00",
+      "uid": 621233,
+      "sender": "ii@investidorinstitucional.com.br",
+      "subject": "=?UTF-8?Q?EFPC_tiveram_retorno_m=C3=A9dio_de_?= =?UTF-8?Q?0,99%_em_fevereiro,_diz_Aditus?=",
+      "date": "2026-03-18T06:17:22+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -5001,26 +4870,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 621059,
+      "uid": 621433,
       "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Como_foi_um_dos_maiores_protestos_anti-IA_at=C3=A9_agora?=",
-      "date": "2026-03-11T14:02:35+00:00",
+      "subject": "=?UTF-8?Q?Seu_acesso_com_20%_OFF_para_o_enc?= =?UTF-8?Q?ontro_que_conecta_Harvard_=C3=A0_sa=C3=BAde?",
+      "date": "2026-03-24T13:20:28+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 621057,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Dados_est=C3=A3o_redefinindo_o_marketing_em_tempo_real?=",
-      "date": "2026-03-11T12:02:43+00:00",
+      "uid": 621425,
+      "sender": "roddreher@substack.com",
+      "subject": "Teachings Of The Monk Of Skye",
+      "date": "2026-03-24T10:41:39+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 621056,
-      "sender": "contato@salajau.com.br",
-      "subject": "=?UTF-8?Q?=F0=9F=93=86_Veja_os_cursos_de_Abril_da_Sala_Ja=C3=BA!?=",
-      "date": "2026-03-11T12:00:46+00:00",
+      "uid": 621423,
+      "sender": "newsletter@mail.infoq.com",
+      "subject": "APIs for MCP, Netflix Knowledge Graph, Lean Kafka, Rewriting Spotify, State of JS, Stripe Minions, S",
+      "date": "2026-03-24T09:11:19+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -5401,26 +5270,18 @@
       "keywords_matched": []
     },
     {
-      "uid": 621238,
-      "sender": "industry-notices@mail.infoq.com",
-      "subject": "AI Agent Swarm Patterns",
-      "date": "2026-03-18T10:04:57+00:00",
+      "uid": 621658,
+      "sender": "gustavo.pierini@gradusconsultoria.com.br",
+      "subject": "=?UTF-8?Q?Llegaron_los_vinhos_Les_B=C3=A2tards_2023?=",
+      "date": "2026-04-01T17:22:14+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 621237,
+      "uid": 621651,
       "sender": "contato@mittechreview.com.br",
-      "subject": "A engrenagem oculta da IA",
-      "date": "2026-03-18T10:01:34+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621233,
-      "sender": "ii@investidorinstitucional.com.br",
-      "subject": "=?UTF-8?Q?EFPC_tiveram_retorno_m=C3=A9dio_de_?= =?UTF-8?Q?0,99%_em_fevereiro,_diz_Aditus?=",
-      "date": "2026-03-18T06:17:22+00:00",
+      "subject": "=?UTF-8?Q?Gasolina_mais_cara_=C3=A9_boa_not=C3=ADcia_?= =?UTF-8?Q?para_setor_de_ve=C3=ADculos_el=C3=",
+      "date": "2026-04-01T14:02:07+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -5509,14 +5370,6 @@
       "sender": "ii@investidorinstitucional.com.br",
       "subject": "=?UTF-8?Q?Focus_indica_alta_da_infla=C3=A7=C3=A3o?= =?UTF-8?Q?_at=C3=A9_2028_com_piora_do_cen=C3=A1r",
       "date": "2026-03-31T06:35:30+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621607,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Speed Reading",
-      "date": "2026-03-31T00:25:30+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -5785,26 +5638,26 @@
       "keywords_matched": []
     },
     {
-      "uid": 621433,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Seu_acesso_com_20%_OFF_para_o_enc?= =?UTF-8?Q?ontro_que_conecta_Harvard_=C3=A0_sa=C3=BAde?",
-      "date": "2026-03-24T13:20:28+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621425,
+      "uid": 621850,
       "sender": "roddreher@substack.com",
-      "subject": "Teachings Of The Monk Of Skye",
-      "date": "2026-03-24T10:41:39+00:00",
+      "subject": "Ben Sasse's Golgotha",
+      "date": "2026-04-09T14:58:02+00:00",
       "attention": false,
       "keywords_matched": []
     },
     {
-      "uid": 621423,
-      "sender": "newsletter@mail.infoq.com",
-      "subject": "APIs for MCP, Netflix Knowledge Graph, Lean Kafka, Rewriting Spotify, State of JS, Stripe Minions, S",
-      "date": "2026-03-24T09:11:19+00:00",
+      "uid": 621847,
+      "sender": "jennifer@onceuponachef.com",
+      "subject": "Chicken Piccata Meatballs, Strawberry Muffins + More",
+      "date": "2026-04-09T13:06:49+00:00",
+      "attention": false,
+      "keywords_matched": []
+    },
+    {
+      "uid": 621846,
+      "sender": "news@digitalconcerthall.com",
+      "subject": "=?UTF-8?Q?Live:_Kirill_Petrenko_condu?= =?UTF-8?Q?cts_Wagner=E2=80=99s_=E2=80=9CDas_Rheingold=E2=80=",
+      "date": "2026-04-09T11:43:31+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -6161,26 +6014,10 @@
       "keywords_matched": []
     },
     {
-      "uid": 621658,
-      "sender": "gustavo.pierini@gradusconsultoria.com.br",
-      "subject": "=?UTF-8?Q?Llegaron_los_vinhos_Les_B=C3=A2tards_2023?=",
-      "date": "2026-04-01T17:22:14+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621651,
-      "sender": "contato@mittechreview.com.br",
-      "subject": "=?UTF-8?Q?Gasolina_mais_cara_=C3=A9_boa_not=C3=ADcia_?= =?UTF-8?Q?para_setor_de_ve=C3=ADculos_el=C3=",
-      "date": "2026-04-01T14:02:07+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621648,
-      "sender": "nathan@productivitygame.com",
-      "subject": "Big idea for the next 90 days",
-      "date": "2026-04-01T11:50:16+00:00",
+      "uid": 621953,
+      "sender": "ii@investidorinstitucional.com.br",
+      "subject": "=?UTF-8?Q?IPCA_tem_alta_forte_em_2026_e_c=C3=A2?= =?UTF-8?Q?mbio_segue_caindo,_segundo_Focus?=",
+      "date": "2026-04-14T05:37:13+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -6345,26 +6182,10 @@
       "keywords_matched": []
     },
     {
-      "uid": 621850,
-      "sender": "roddreher@substack.com",
-      "subject": "Ben Sasse's Golgotha",
-      "date": "2026-04-09T14:58:02+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621847,
-      "sender": "jennifer@onceuponachef.com",
-      "subject": "Chicken Piccata Meatballs, Strawberry Muffins + More",
-      "date": "2026-04-09T13:06:49+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621846,
-      "sender": "news@digitalconcerthall.com",
-      "subject": "=?UTF-8?Q?Live:_Kirill_Petrenko_condu?= =?UTF-8?Q?cts_Wagner=E2=80=99s_=E2=80=9CDas_Rheingold=E2=80=",
-      "date": "2026-04-09T11:43:31+00:00",
+      "uid": 622001,
+      "sender": "team@mail.perplexity.ai",
+      "subject": "You're out of credits",
+      "date": "2026-04-15T17:53:22+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -6441,14 +6262,6 @@
       "keywords_matched": []
     },
     {
-      "uid": 621959,
-      "sender": "nathan@productivitygame.com",
-      "subject": "[Productivity Game] SUMMARY: Inner Excellence",
-      "date": "2026-04-14T12:20:42+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
       "uid": 621955,
       "sender": "newsletter@mail.infoq.com",
       "subject": "MCP Dev Summit, Duolingo & Kubernetes, Cloudflare EmDash, Spark OOM Failures, Local First, Principal",
@@ -6461,14 +6274,6 @@
       "sender": "roddreher@substack.com",
       "subject": "MAGA Jesus Fights The Pope",
       "date": "2026-04-14T06:42:30+00:00",
-      "attention": false,
-      "keywords_matched": []
-    },
-    {
-      "uid": 621953,
-      "sender": "ii@investidorinstitucional.com.br",
-      "subject": "=?UTF-8?Q?IPCA_tem_alta_forte_em_2026_e_c=C3=A2?= =?UTF-8?Q?mbio_segue_caindo,_segundo_Focus?=",
-      "date": "2026-04-14T05:37:13+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -6569,10 +6374,10 @@
       "keywords_matched": []
     },
     {
-      "uid": 622001,
+      "uid": 622102,
       "sender": "team@mail.perplexity.ai",
-      "subject": "You're out of credits",
-      "date": "2026-04-15T17:53:22+00:00",
+      "subject": "Action required: Unlock Enterprise Pro features for you and your team",
+      "date": "2026-04-19T00:19:13+00:00",
       "attention": false,
       "keywords_matched": []
     },
@@ -6649,5 +6454,13 @@
       "keywords_matched": []
     }
   ],
-  "deleted_items": []
+  "deleted_items": [
+    {
+      "uid": 618868,
+      "sender": "no-reply@github.com",
+      "subject": "GitHub is updating the Actions pricing structure",
+      "date": "2025-12-16T17:52:11+00:00",
+      "age_days": 123
+    }
+  ]
 }

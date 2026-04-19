@@ -7,8 +7,8 @@ This document tells OpenClaw how to operate the email hygiene system.
 ## O que o sistema faz
 
 - Roda diariamente via cron contra a conta Yahoo
-- Apaga junk com ≥ 30 dias de idade (`delete` senders)
-- Coleta conteúdo de emails de interesse em `data/yahoo/for_digest.txt` para processamento LLM futuro
+- Apaga emails `delete` com ≥ 7 dias de idade
+- Apaga emails `digest` com ≥ 14 dias de idade (sem coleta de conteúdo)
 - Nunca toca emails `keep` (VIP, pessoal, banco crítico)
 - Produz `data/yahoo/digest.json` com resultado estruturado a cada execução
 
@@ -37,10 +37,11 @@ Sobrescrito a cada execução.
 |-------|----------------|
 | `attention_items` | Emails com keywords de urgência (fatura, vencimento, alerta...) — alertar o usuário |
 | `pending_senders` | Remetentes aguardando classificação — perguntar ao usuário |
-| `summary.deleted` | Quantos emails foram apagados nesta execução |
-| `summary.pending_classification` | Quantos remetentes novos aguardam decisão |
-| `digest_items` | Conteúdo coletado para processamento futuro (não urgente) |
-| `deleted_items` | Lista de emails apagados nesta execução |
+| `summary.deleted` | Emails apagados da categoria `delete` |
+| `summary.digest_seen` | Emails da categoria `digest` encontrados |
+| `summary.digest_deleted` | Emails `digest` apagados por terem ≥ 14 dias |
+| `summary.pending_classification` | Remetentes novos aguardando decisão |
+| `deleted_items` | Lista de emails apagados (categoria `delete`) nesta execução |
 
 ---
 
@@ -63,8 +64,8 @@ Sobrescrito a cada execução.
 
 | Categoria | Significado | Ação do script |
 |-----------|-------------|----------------|
-| `delete` | Junk puro, marketing sem valor | Apaga com ≥ 30 dias de idade |
-| `digest` | Newsletters, conteúdo de interesse | Coleta em `for_digest.txt`, nunca apaga |
+| `delete` | Junk puro, marketing sem valor | Apaga com ≥ 7 dias |
+| `digest` | Newsletters, conteúdo de interesse | Apaga com ≥ 14 dias; keywords de atenção detectadas pelo subject |
 | `keep` | VIP, pessoal, banco crítico | Nenhuma ação |
 
 ---
@@ -73,9 +74,9 @@ Sobrescrito a cada execução.
 
 - Rodar sem `--dry-run` numa conta nova pela primeira vez
 - Alterar categorias de senders em `senders.json` sem confirmação do usuário
-- Apagar `for_digest.txt` ou `digest.txt` (histórico acumulado)
+- Apagar o diretório `deprecated/` sem perguntar (contém histórico)
 - Rodar contra contas que não sejam Yahoo sem instrução explícita do usuário
-- Usar `--min-age-delete` menor que 30 dias
+- Usar `--min-age-delete` menor que 7 dias ou `--min-age-digest` menor que 14 dias
 
 ---
 
@@ -93,8 +94,7 @@ projects/inbox-hygiene/
       senders.json       # mapa remetente → categoria
       state.json         # last_uid, pending_senders
       digest.json        # digest estruturado (OpenClaw consome)
-      digest.txt         # log legível (histórico acumulado)
-      for_digest.txt     # conteúdo bruto para LLM futuro
+      deprecated/        # arquivos descontinuados em Abril 2026 (ver DEPRECATED.md)
   tests/
     test_email_review.py
   AGENT.md               # este arquivo

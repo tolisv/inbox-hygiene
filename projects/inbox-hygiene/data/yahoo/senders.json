@@ -201,7 +201,7 @@
   "contato@crm.dermaclub.com.br": "delete",
   "digital-no-reply@amazon.com": "keep",
   "donotreply@entry.sx": "keep",
-  "etad@etad.com.br": "digest",
+  "etad@etad.com.br": "delete",
   "eventos@thermomixbr.disparoemktdenews.com": "delete",
   "feedback@id-cx.co": "delete",
   "felipe@eurekah.com.br": "delete",
@@ -386,5 +386,12 @@
   "reservations@sixt.com": "keep",
   "account-update-no-reply@signin.aws": "keep",
   "noreply@update.clipchamp.com": "delete",
-  "password-reset-no-reply@verify.signin.aws": "keep"
+  "password-reset-no-reply@verify.signin.aws": "keep",
+  "nate@aiautomationsociety.ai": "delete",
+  "no-reply@github.com": "delete",
+  "noreply@notifs.skool.com": "delete",
+  "noreply@skool.com": "delete",
+  "novidades@canal.carlaamorim.com.br": "delete",
+  "uppitai@mail.beehiiv.com": "delete",
+  "verify@x.com": "delete"
 }

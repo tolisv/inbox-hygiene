@@ -53,8 +53,8 @@ Simplificamos de 5 para 3 categorias:
 
 | Categoria | Descrição | Ação do script | Retenção |
 |-----------|-----------|----------------|----------|
-| `delete` | Junk puro, marketing sem valor, spam | Apaga com ≥ 30 dias de idade | 30 dias mínimos |
-| `digest` | Newsletters, conteúdo de interesse, não-VIP não-junk | Coleta em `for_digest.txt`, nunca apaga | Indefinida |
+| `delete` | Junk puro, marketing sem valor, spam | Apaga com ≥ 7 dias | 7 dias |
+| `digest` | Newsletters, conteúdo de interesse, não-VIP não-junk | Apaga com ≥ 14 dias; subject verificado para keywords de atenção | 14 dias |
 | `keep` | VIP, pessoal, banco crítico | Nenhuma ação | Indefinida |
 
 ### Migração das categorias legadas
@@ -79,8 +79,9 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
 
 ### Retenção
 
-- `delete`: mínimo 30 dias (era 7 dias — aumentado para segurança)
-- `digest` e `keep`: sem deleção automática
+- `delete`: 7 dias
+- `digest`: 14 dias
+- `keep`: sem deleção automática
 
 ---
 
@@ -112,8 +113,7 @@ projects/inbox-hygiene/
       senders.json       # mapa remetente → categoria
       state.json         # last_uid, pending_senders
       digest.json        # digest estruturado (OpenClaw consome)
-      digest.txt         # log legível (histórico acumulado)
-      for_digest.txt     # conteúdo bruto para LLM futuro
+      deprecated/        # arquivos descontinuados em Abril 2026 (ver DEPRECATED.md)
   tests/
     test_email_review.py
   AGENT.md               # brief para o OpenClaw
@@ -138,10 +138,12 @@ projects/inbox-hygiene/
 - OpenClaw lê `digest.json` no heartbeat e notifica o usuário
 - Classificação de senders pendentes via chat com o OpenClaw
 
-### Fase 3 — Futura
+### Fase 3 — Futura (redesenho necessário)
 
-- LLM processa `for_digest.txt`, extrai insights
+- LLM processa conteúdo selecionado de emails `digest` de alto valor
 - Grava em `raw/` do vault Obsidian no Mac Studio (estilo Karpathy)
+- Nota: o acumulador bruto (`for_digest.txt`) foi descontinuado em Abril 2026 por
+  excesso de ruído. A Fase 3 precisará de um funil de seleção antes de enviar para LLM.
 
 ### Fase 4 — Futura
 
