@@ -28,6 +28,39 @@ O wrapper `run_yahoo.sh` carrega as credenciais de `scripts/email_creds.env` e p
 
 ---
 
+## Conta Gmail
+
+```bash
+# Dry-run Gmail
+projects/inbox-hygiene/scripts/run_gmail.sh --dry-run
+
+# Execução normal Gmail
+projects/inbox-hygiene/scripts/run_gmail.sh
+```
+
+O wrapper carrega `scripts/gmail_creds.env` (com `ANTHROPIC_API_KEY`) e passa `--classify-with-llm` automaticamente.
+
+### Como interpretar `llm_classifications` no digest.json
+
+Após um run Gmail, `digest.json` pode conter:
+
+```json
+"llm_classifications": [
+  {"sender": "spam@promo.com", "category": "delete", "subject": "Big Sale!"},
+  {"sender": "news@sub.com",   "category": "digest", "subject": "Weekly digest"}
+]
+```
+
+Apresentar este resumo ao usuário após o run. O usuário pode corrigir qualquer entrada dizendo "muda spam@promo.com para digest" — atualizar `data/gmail/senders.json` diretamente.
+
+### O que nunca fazer sem perguntar (Gmail)
+
+- Rodar sem `--dry-run` na primeira vez numa conta nova
+- Rodar `--classify-with-llm` sem `ANTHROPIC_API_KEY` configurada
+- Alterar categorias em `data/gmail/senders.json` sem confirmação do usuário
+
+---
+
 ## Como interpretar o digest.json
 
 Arquivo: `projects/inbox-hygiene/data/yahoo/digest.json`  

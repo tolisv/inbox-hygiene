@@ -19,6 +19,12 @@ Automação de higiene do inbox Yahoo via IMAP. Classifica remetentes em 3 categ
   - Cria diretório e arquivos iniciais se necessário
   - Encaminha todos os argumentos extras para `email_review.py`
 
+- **run_gmail.sh** — Wrapper para a conta Gmail:
+  - Carrega credenciais de `gmail_creds.env` (inclui `ANTHROPIC_API_KEY`)
+  - Define `--data-dir` apontando para `data/gmail/`
+  - Passa `--classify-with-llm` automaticamente
+  - Encaminha todos os argumentos extras para `email_review.py`
+
 - **email_creds.env** — Credenciais IMAP (não versionado):
   ```bash
   IMAP_USER="seu_email@yahoo.com"
@@ -50,6 +56,20 @@ Automação de higiene do inbox Yahoo via IMAP. Classifica remetentes em 3 categ
    .venv/bin/pip install pytest
    ```
 
+### Setup Gmail
+
+Além das credenciais IMAP, o Gmail usa classificação LLM. Criar `scripts/gmail_creds.env`:
+
+```bash
+IMAP_HOST="imap.gmail.com"
+IMAP_PORT="993"
+IMAP_USER="seu@gmail.com"
+IMAP_PASS="xxxx xxxx xxxx xxxx"   # senha de app (16 chars), não a senha da conta
+ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Ver `docs/superpowers/specs/2026-04-19-gmail-phase4-design.md` para o passo a passo de como ativar IMAP e gerar senha de app no Gmail.
+
 ## Uso
 
 ```bash
@@ -64,6 +84,7 @@ projects/inbox-hygiene/scripts/run_yahoo.sh
 --days N              # janela de busca em dias (padrão: 360)
 --min-age-delete N    # idade mínima para delete (padrão: 7)
 --min-age-digest N    # idade mínima para apagar digest (padrão: 14)
+--classify-with-llm   # classifica pending senders via Claude Haiku (requer ANTHROPIC_API_KEY)
 --data-dir PATH       # diretório de dados da conta (definido pelo wrapper)
 --account NAME        # nome da conta para o digest (definido pelo wrapper)
 ```
