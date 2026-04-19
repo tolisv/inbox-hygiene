@@ -3,3 +3,4 @@ venv/
 *.pyc
 __pycache__/
 scripts/email_creds.env
+scripts/gmail_creds.env
