@@ -76,7 +76,7 @@ ATTENTION_KEYWORDS = [
 ]
 
 
-DEFAULT_MIN_AGE_DELETE = 30
+DEFAULT_MIN_AGE_DELETE = 7
 
 
 # ---------------------------------------------------------------------------
