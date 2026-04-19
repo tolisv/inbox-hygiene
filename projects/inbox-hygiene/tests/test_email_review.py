@@ -102,73 +102,94 @@ def _dt(days_ago):
 
 
 class TestDecideAction:
-    def _decide(self, sender, subject, dt, senders_map, min_age=30):
-        return er.decide_action(sender, subject, dt, senders_map, min_age)
+    def _decide(self, sender, subject, dt, senders_map, min_age=30, min_age_digest=14):
+        return er.decide_action(sender, subject, dt, senders_map, min_age, min_age_digest)
 
     # Unclassified sender
     def test_unclassified_is_skip(self):
-        action, reason, attention, kw = self._decide(
+        action, reason, attention, kw, also_delete = self._decide(
             'unknown@x.com', 'hello', _dt(5), {})
         assert action == 'skip'
         assert attention is False
         assert kw == []
+        assert also_delete is False
 
     # keep category
     def test_keep_sender_is_keep(self):
-        action, _, attention, kw = self._decide(
+        action, _, attention, kw, also_delete = self._decide(
             'vip@x.com', 'hello', _dt(5), {'vip@x.com': 'keep'})
         assert action == 'keep'
         assert attention is False
         assert kw == []
+        assert also_delete is False
 
     # delete category — age checks
     def test_delete_old_enough(self):
-        action, _, attention, kw = self._decide(
+        action, _, attention, kw, also_delete = self._decide(
             'junk@x.com', 'sale!', _dt(31), {'junk@x.com': 'delete'})
         assert action == 'delete'
         assert attention is False
+        assert also_delete is False
 
     def test_delete_too_recent_is_skip(self):
-        action, _, _, _ = self._decide(
+        action, _, _, _, _ = self._decide(
             'junk@x.com', 'sale!', _dt(10), {'junk@x.com': 'delete'})
         assert action == 'skip'
 
     def test_delete_exactly_at_min_age(self):
-        action, _, _, _ = self._decide(
+        action, _, _, _, _ = self._decide(
             'junk@x.com', 'sale!', _dt(30), {'junk@x.com': 'delete'})
         assert action == 'delete'
 
     def test_delete_keyword_in_subject_does_not_change_action(self):
         # keywords are NOT checked for delete senders
-        action, _, attention, kw = self._decide(
+        action, _, attention, kw, also_delete = self._decide(
             'junk@x.com', 'Fatura pendente', _dt(31), {'junk@x.com': 'delete'})
         assert action == 'delete'
         assert attention is False
         assert kw == []
+        assert also_delete is False
 
     # digest category
     def test_digest_no_keywords(self):
-        action, _, attention, kw = self._decide(
+        action, _, attention, kw, also_delete = self._decide(
             'news@x.com', 'Weekly roundup', _dt(5), {'news@x.com': 'digest'})
         assert action == 'collect_digest'
         assert attention is False
         assert kw == []
+        assert also_delete is False  # too recent to delete
 
     def test_digest_with_keyword_sets_attention(self):
-        action, _, attention, kw = self._decide(
+        action, _, attention, kw, also_delete = self._decide(
             'bank@x.com', 'Fatura disponível', _dt(5), {'bank@x.com': 'digest'})
         assert action == 'collect_digest'
         assert attention is True
         assert 'fatura' in kw
+        assert also_delete is False  # too recent to delete
 
     def test_digest_not_age_gated(self):
-        # digest emails are collected regardless of age
-        action, _, _, _ = self._decide(
+        # digest emails are always collected regardless of age
+        action, _, _, _, _ = self._decide(
             'news@x.com', 'Old newsletter', _dt(200), {'news@x.com': 'digest'})
         assert action == 'collect_digest'
 
+    def test_digest_old_enough_sets_also_delete(self):
+        # digest emails >= min_age_digest should be flagged for deletion after collection
+        action, _, _, _, also_delete = self._decide(
+            'news@x.com', 'Old newsletter', _dt(14), {'news@x.com': 'digest'},
+            min_age_digest=14)
+        assert action == 'collect_digest'
+        assert also_delete is True
+
+    def test_digest_too_recent_also_delete_false(self):
+        action, _, _, _, also_delete = self._decide(
+            'news@x.com', 'Recent newsletter', _dt(5), {'news@x.com': 'digest'},
+            min_age_digest=14)
+        assert action == 'collect_digest'
+        assert also_delete is False
+
     def test_custom_min_age(self):
-        action, _, _, _ = self._decide(
+        action, _, _, _, _ = self._decide(
             'junk@x.com', 'sale', _dt(10), {'junk@x.com': 'delete'}, min_age=7)
         assert action == 'delete'
 

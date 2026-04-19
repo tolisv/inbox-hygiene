@@ -77,6 +77,7 @@ ATTENTION_KEYWORDS = [
 
 
 DEFAULT_MIN_AGE_DELETE = 7
+DEFAULT_MIN_AGE_DIGEST = 14
 
 
 # ---------------------------------------------------------------------------
@@ -282,36 +283,41 @@ def migrate_senders(senders_map):
     return migrated
 
 
-def decide_action(sender, subject, dt, senders_map, min_age_delete):
+def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_digest):
     """
     Determine the action for one message.
 
-    Returns (action, reason, attention, keywords_matched) where action is one of:
-        'delete'          – mark \\Deleted + expunge
-        'collect_digest'  – append body to for_digest.txt
-        'keep'            – no action
-        'skip'            – no action (unclassified or too recent)
+    Returns (action, reason, attention, keywords_matched, also_delete) where:
+        action is one of:
+            'delete'          – mark \\Deleted + expunge
+            'collect_digest'  – append body to for_digest.txt
+            'keep'            – no action
+            'skip'            – no action (unclassified or too recent)
+        also_delete: True for 'collect_digest' emails old enough to be deleted
+                     after collection (age >= min_age_digest).
 
     attention: True only for 'collect_digest' emails that match attention keywords.
     keywords_matched: list of matched keywords (non-empty only when attention=True).
     """
     classification = senders_map.get(sender)
     if not classification:
-        return 'skip', 'unclassified sender', False, []
+        return 'skip', 'unclassified sender', False, [], False
 
     if classification == 'keep':
-        return 'keep', 'keep — never auto-process', False, []
+        return 'keep', 'keep — never auto-process', False, [], False
 
     if classification == 'delete':
         if not is_old_enough(dt, min_age_delete):
-            return 'skip', f'too recent ({age_days(dt)}d < min {min_age_delete}d)', False, []
-        return 'delete', f'sender=delete, age={age_days(dt)}d', False, []
+            return 'skip', f'too recent ({age_days(dt)}d < min {min_age_delete}d)', False, [], False
+        return 'delete', f'sender=delete, age={age_days(dt)}d', False, [], False
 
     if classification == 'digest':
         matched = attention_keywords_in(subject)
-        return 'collect_digest', 'sender=digest', bool(matched), matched
+        also_delete = is_old_enough(dt, min_age_digest)
+        reason = f'sender=digest, age={age_days(dt)}d'
+        return 'collect_digest', reason, bool(matched), matched, also_delete
 
-    return 'skip', f'unknown classification: {classification}', False, []
+    return 'skip', f'unknown classification: {classification}', False, [], False
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +347,7 @@ class Digest:
 
     def record(self, action: str, sender: str, uid: int, subject: str,
                dt=None, reason: str = '', attention: bool = False,
-               keywords_matched: list = None):
+               keywords_matched: list = None, also_delete: bool = False):
         if keywords_matched is None:
             keywords_matched = []
         entry = {
@@ -355,7 +361,10 @@ class Digest:
             self._buckets['deleted'].append(entry)
         elif action == 'collect_digest':
             digest_entry = {**entry, 'attention': attention,
-                            'keywords_matched': keywords_matched}
+                            'keywords_matched': keywords_matched,
+                            'deleted_after_collect': also_delete}
+            if also_delete:
+                digest_entry['age_days'] = age_days(dt)
             self._buckets['digest_collected'].append(digest_entry)
             if attention:
                 self._attention_items.append({**digest_entry, 'category': 'digest'})
@@ -377,6 +386,10 @@ class Digest:
                 'total_messages_scanned': self._total_scanned,
                 'deleted': len(self._buckets['deleted']),
                 'digest_collected': len(self._buckets['digest_collected']),
+                'digest_deleted': sum(
+                    1 for e in self._buckets['digest_collected']
+                    if e.get('deleted_after_collect')
+                ),
                 'kept': len(self._buckets['kept']),
                 'skipped': len(self._buckets['skipped']),
                 'pending_classification': len(self._pending_senders),
@@ -513,6 +526,9 @@ def parse_args():
                    help='Search window in days (default: 360)')
     p.add_argument('--min-age-delete', type=int, default=DEFAULT_MIN_AGE_DELETE,
                    help=f'Min age in days before deleting (default: {DEFAULT_MIN_AGE_DELETE})')
+    p.add_argument('--min-age-digest', type=int, default=DEFAULT_MIN_AGE_DIGEST,
+                   help=f'Min age in days before deleting digest emails after collection '
+                        f'(default: {DEFAULT_MIN_AGE_DIGEST})')
     p.add_argument('--data-dir', default=None,
                    help='Path to account data directory '
                         '(default: <script-dir>/../data/yahoo)')
@@ -640,37 +656,31 @@ def main():
     digest = Digest(args.account)
 
     to_delete = []
+    to_delete_digest = []  # digest emails old enough to delete after collection
     to_collect = []  # (uid, sender, subject, dt) — only newer than last_uid
 
     for uid, sender, subject, dt in messages:
-        action, reason, attention, keywords_matched = decide_action(
-            sender, subject, dt, senders_map, args.min_age_delete)
+        action, reason, attention, keywords_matched, also_delete = decide_action(
+            sender, subject, dt, senders_map, args.min_age_delete, args.min_age_digest)
 
-        digest.record(action, sender, uid, subject, dt, reason, attention, keywords_matched)
+        digest.record(action, sender, uid, subject, dt, reason, attention,
+                      keywords_matched, also_delete)
 
         if action == 'delete':
             to_delete.append(uid)
-        elif action == 'collect_digest' and uid > last_uid:
-            to_collect.append((uid, sender, subject, dt))
+        elif action == 'collect_digest':
+            if uid > last_uid:
+                to_collect.append((uid, sender, subject, dt))
+            if also_delete:
+                to_delete_digest.append(uid)
 
     totals = digest.totals()
     print(f'  Planned: {totals["deleted"]} delete, '
-          f'{totals["digest_collected"]} collect, '
+          f'{totals["digest_collected"]} collect '
+          f'({len(to_delete_digest)} digest also to delete), '
           f'{totals["kept"]} keep')
 
-    # --- Phase 4a: Delete ----------------------------------------------------
-    if to_delete:
-        if dry_run:
-            print(f'[DRY RUN] Would delete {len(to_delete)} message(s).')
-        else:
-            print(f'Deleting {len(to_delete)} message(s)…')
-            batched_store(imap, to_delete, r'(\Deleted)', 'Flagged for deletion')
-            imap.expunge()
-            print('  Expunged.')
-    else:
-        print('No messages to delete.')
-
-    # --- Phase 4b: Collect digest content ------------------------------------
+    # --- Phase 4a: Collect digest content (must happen before digest deletes) -
     to_collect.sort(key=lambda x: x[0])
     if to_collect:
         if dry_run:
@@ -681,6 +691,21 @@ def main():
             print('  Done.')
     else:
         print('No new messages to collect for digest.')
+
+    # --- Phase 4b: Delete (delete-category + old digest after collection) ----
+    all_to_delete = to_delete + to_delete_digest
+    if all_to_delete:
+        if dry_run:
+            print(f'[DRY RUN] Would delete {len(to_delete)} delete-category '
+                  f'+ {len(to_delete_digest)} digest message(s).')
+        else:
+            print(f'Deleting {len(to_delete)} delete-category '
+                  f'+ {len(to_delete_digest)} digest message(s)…')
+            batched_store(imap, all_to_delete, r'(\Deleted)', 'Flagged for deletion')
+            imap.expunge()
+            print('  Expunged.')
+    else:
+        print('No messages to delete.')
 
     # --- Phase 5: Write digest -----------------------------------------------
     digest.set_total_scanned(len(messages))
