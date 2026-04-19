@@ -343,12 +343,16 @@ class Digest:
         }
         self._attention_items = []
         self._pending_senders = []
+        self._llm_classifications = []
 
     def set_total_scanned(self, n: int):
         self._total_scanned = n
 
     def set_pending_senders(self, pending: list):
         self._pending_senders = pending
+
+    def set_llm_classifications(self, classifications: list):
+        self._llm_classifications = classifications
 
     def record(self, action: str, sender: str, uid: int, subject: str,
                dt=None, reason: str = '', attention: bool = False,
@@ -401,6 +405,7 @@ class Digest:
             },
             'attention_items': self._attention_items,
             'pending_senders': self._pending_senders,
+            'llm_classifications': self._llm_classifications,
             'deleted_items': self._buckets['deleted'],
         }
         atomic_write_json(path, data)
@@ -560,6 +565,8 @@ def parse_args():
                         '(default: <script-dir>/../data/yahoo)')
     p.add_argument('--account', default='yahoo',
                    help='Account name written into digest.json (default: yahoo)')
+    p.add_argument('--classify-with-llm', action='store_true', default=False,
+                   help='Classify pending senders using Claude Haiku (requires ANTHROPIC_API_KEY)')
     return p.parse_args()
 
 
@@ -676,6 +683,34 @@ def main():
             atomic_write_json(senders_file, senders_map)
         print()
 
+    # --- Phase 2b: LLM classification of pending senders (optional) ----------
+    llm_classifications = []
+    if args.classify_with_llm and pending_senders:
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+        if not api_key:
+            print('Warning: --classify-with-llm set but ANTHROPIC_API_KEY not found — skipping.',
+                  file=sys.stderr)
+        else:
+            print(f'Classifying {len(pending_senders)} pending sender(s) with LLM…')
+            suggestions = classify_pending_with_llm(pending_senders, api_key)
+            for p in pending_senders:
+                sender = p['sender']
+                if sender in suggestions:
+                    category = suggestions[sender]
+                    senders_map[sender] = category
+                    llm_classifications.append({
+                        'sender': sender,
+                        'category': category,
+                        'subject': p.get('subject', ''),
+                    })
+                    print(f'  {sender} → {category}')
+            if not dry_run and llm_classifications:
+                atomic_write_json(senders_file, senders_map)
+                print(f'  Saved {len(llm_classifications)} classification(s) to senders.json.')
+            # Clear pending_senders for senders that got classified
+            classified_senders = {c['sender'] for c in llm_classifications}
+            pending_senders = [p for p in pending_senders if p['sender'] not in classified_senders]
+
     # --- Phase 3: Determine action per message --------------------------------
     print('Determining actions…')
     digest = Digest(args.account)
@@ -719,6 +754,7 @@ def main():
     # --- Phase 5: Write digest -----------------------------------------------
     digest.set_total_scanned(len(messages))
     digest.set_pending_senders(pending_senders)
+    digest.set_llm_classifications(llm_classifications)
 
     digest.write_json(digest_json_file, dry_run)
     digest_content = digest.write_txt(digest_txt_file, dry_run)
