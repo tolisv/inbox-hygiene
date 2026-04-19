@@ -385,7 +385,7 @@ class Digest:
             'summary': {
                 'total_messages_scanned': self._total_scanned,
                 'deleted': len(self._buckets['deleted']),
-                'digest_collected': len(self._buckets['digest_collected']),
+                'digest_seen': len(self._buckets['digest_collected']),
                 'digest_deleted': sum(
                     1 for e in self._buckets['digest_collected']
                     if e.get('deleted_after_collect')
@@ -396,7 +396,6 @@ class Digest:
             },
             'attention_items': self._attention_items,
             'pending_senders': self._pending_senders,
-            'digest_items': self._buckets['digest_collected'],
             'deleted_items': self._buckets['deleted'],
         }
         atomic_write_json(path, data)
@@ -406,14 +405,17 @@ class Digest:
         """Append human-readable digest to path (accumulates across runs)."""
         prefix = '[DRY RUN] ' if dry_run else ''
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        digest_deleted = sum(
+            1 for e in self._buckets['digest_collected']
+            if e.get('deleted_after_collect'))
         lines = [
             '=' * 60,
             f'Email Hygiene Digest  {prefix}{now}',
             '=' * 60,
             '',
             (f"Scanned: {self._total_scanned} | "
-             f"Deleted: {len(self._buckets['deleted'])} | "
-             f"Digest: {len(self._buckets['digest_collected'])} | "
+             f"Deleted: {len(self._buckets['deleted'])} delete "
+             f"+ {digest_deleted} digest | "
              f"Pending: {len(self._pending_senders)}"),
             '',
         ]
@@ -429,15 +431,6 @@ class Digest:
             for p in self._pending_senders:
                 lines.append(f"  {p['sender']}")
             lines.append('')
-        lines.append(f'### Deleted ({len(self._buckets["deleted"])})')
-        for e in self._buckets['deleted']:
-            lines.append(f"  [{e['uid']}] {e['sender']} ({e.get('age_days', '?')}d)")
-        lines.append('')
-        lines.append(f'### Digest collected ({len(self._buckets["digest_collected"])})')
-        for e in self._buckets['digest_collected']:
-            flag = ' [!]' if e.get('attention') else ''
-            lines.append(f"  [{e['uid']}] {e['sender']}{flag}")
-        lines.append('')
         content = '\n'.join(lines)
         with open(path, 'a', encoding='utf-8') as fh:
             fh.write(content + '\n')
@@ -473,48 +466,6 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
 
 
 # ---------------------------------------------------------------------------
-# Summarize: fetch and append full text content
-# ---------------------------------------------------------------------------
-
-def collect_digest(imap, to_collect, digest_raw_file):
-    """Fetch RFC822 for each message and append plain-text body to digest_raw_file."""
-    with open(digest_raw_file, 'a', encoding='utf-8') as fh:
-        for uid, sender, subj, dt in to_collect:
-            res, full = imap.uid('FETCH', str(uid), '(RFC822)')
-            if res != 'OK':
-                continue
-            raw = full[0][1]
-            parsed = email.message_from_bytes(raw)
-            body = ''
-            if parsed.is_multipart():
-                for part in parsed.walk():
-                    ct = part.get_content_type()
-                    cd = part.get_content_disposition()
-                    if ct == 'text/plain' and not cd:
-                        try:
-                            body += part.get_payload(decode=True).decode(
-                                part.get_content_charset() or 'utf-8',
-                                errors='ignore')
-                        except Exception:
-                            pass
-            else:
-                try:
-                    body = parsed.get_payload(decode=True).decode(
-                        parsed.get_content_charset() or 'utf-8',
-                        errors='ignore')
-                except Exception:
-                    pass
-            body = '\n'.join(
-                line for line in body.splitlines()
-                if 'http://' not in line and 'https://' not in line)
-            fh.write(
-                f'---\nSender: {sender}\nDate: {dt}\n'
-                f'Subject: {parsed.get("Subject", "")}\n\n'
-            )
-            fh.write(body.strip() + '\n\n')
-
-
-# ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 
@@ -527,7 +478,7 @@ def parse_args():
     p.add_argument('--min-age-delete', type=int, default=DEFAULT_MIN_AGE_DELETE,
                    help=f'Min age in days before deleting (default: {DEFAULT_MIN_AGE_DELETE})')
     p.add_argument('--min-age-digest', type=int, default=DEFAULT_MIN_AGE_DIGEST,
-                   help=f'Min age in days before deleting digest emails after collection '
+                   help=f'Min age in days before deleting digest emails '
                         f'(default: {DEFAULT_MIN_AGE_DIGEST})')
     p.add_argument('--data-dir', default=None,
                    help='Path to account data directory '
@@ -554,7 +505,6 @@ def main():
 
     senders_file = os.path.join(data_dir, 'senders.json')
     state_file = os.path.join(data_dir, 'state.json')
-    digest_raw_file = os.path.join(data_dir, 'for_digest.txt')
     digest_json_file = os.path.join(data_dir, 'digest.json')
     digest_txt_file = os.path.join(data_dir, 'digest.txt')
 
@@ -656,8 +606,7 @@ def main():
     digest = Digest(args.account)
 
     to_delete = []
-    to_delete_digest = []  # digest emails old enough to delete after collection
-    to_collect = []  # (uid, sender, subject, dt) — only newer than last_uid
+    to_delete_digest = []  # digest emails old enough to delete
 
     for uid, sender, subject, dt in messages:
         action, reason, attention, keywords_matched, also_delete = decide_action(
@@ -668,31 +617,16 @@ def main():
 
         if action == 'delete':
             to_delete.append(uid)
-        elif action == 'collect_digest':
-            if uid > last_uid:
-                to_collect.append((uid, sender, subject, dt))
-            if also_delete:
-                to_delete_digest.append(uid)
+        elif action == 'collect_digest' and also_delete:
+            to_delete_digest.append(uid)
 
     totals = digest.totals()
     print(f'  Planned: {totals["deleted"]} delete, '
-          f'{totals["digest_collected"]} collect '
-          f'({len(to_delete_digest)} digest also to delete), '
+          f'{totals["digest_collected"]} digest seen '
+          f'({len(to_delete_digest)} to delete), '
           f'{totals["kept"]} keep')
 
-    # --- Phase 4a: Collect digest content (must happen before digest deletes) -
-    to_collect.sort(key=lambda x: x[0])
-    if to_collect:
-        if dry_run:
-            print(f'[DRY RUN] Would collect {len(to_collect)} message(s) for digest.')
-        else:
-            print(f'Collecting {len(to_collect)} message(s) → for_digest.txt…')
-            collect_digest(imap, to_collect, digest_raw_file)
-            print('  Done.')
-    else:
-        print('No new messages to collect for digest.')
-
-    # --- Phase 4b: Delete (delete-category + old digest after collection) ----
+    # --- Phase 4: Delete (delete-category + old digest) ----------------------
     all_to_delete = to_delete + to_delete_digest
     if all_to_delete:
         if dry_run:

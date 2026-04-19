@@ -245,14 +245,14 @@ class TestDigest:
         assert data['dry_run'] is False
         assert data['summary']['total_messages_scanned'] == 50
         assert data['summary']['deleted'] == 1
-        assert data['summary']['digest_collected'] == 1
+        assert data['summary']['digest_seen'] == 1
         assert data['summary']['pending_classification'] == 1
         assert len(data['attention_items']) == 1
         assert data['attention_items'][0]['sender'] == 'bank@x.com'
         assert data['attention_items'][0]['attention'] is True
         assert 'fatura' in data['attention_items'][0]['keywords_matched']
         assert len(data['deleted_items']) == 1
-        assert len(data['digest_items']) == 1
+        assert 'digest_items' not in data
 
         # verify file was written and parses correctly
         with open(path) as f:
