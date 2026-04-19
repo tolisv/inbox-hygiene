@@ -109,11 +109,20 @@ def is_old_enough(dt, min_days):
 
 
 def attention_keywords_in(subject):
-    """Return list of ATTENTION_KEYWORDS found in subject (case-insensitive)."""
+    """Return list of ATTENTION_KEYWORDS found in subject.
+
+    Matching uses case-insensitive whole-token/phrase boundaries so short
+    keywords like "senha" do not fire on unrelated substrings.
+    """
     if not subject:
         return []
     subj_lower = subject.lower()
-    return [kw for kw in ATTENTION_KEYWORDS if kw in subj_lower]
+    matched = []
+    for kw in ATTENTION_KEYWORDS:
+        pattern = r'(?<!\w)' + re.escape(kw.lower()) + r'(?!\w)'
+        if re.search(pattern, subj_lower, flags=re.IGNORECASE):
+            matched.append(kw)
+    return matched
 
 
 # ---------------------------------------------------------------------------

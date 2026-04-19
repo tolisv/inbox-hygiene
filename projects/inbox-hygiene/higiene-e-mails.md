@@ -72,8 +72,9 @@ A migração é feita automaticamente na primeira execução com o novo script.
 ### Detecção de keywords
 
 Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verificadas **somente em emails `digest`**:
-- Para `delete` e `keep`, não há verificação de keyword — confia-se na classificação do remetente
+- Para `delete` e `keep`, não há verificação de keyword, confia-se na classificação do remetente
 - Quando encontrada num email `digest`, adiciona `attention: true` no `digest.json` sem mudar a ação
+- A detecção usa fronteiras de palavra/expressão, para evitar falsos positivos por substring acidental
 - Isso permite ao OpenClaw filtrar itens urgentes sem que o script tome decisões destrutivas
 
 ### Retenção
