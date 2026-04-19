@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 import email_review as er
 from datetime import datetime, timezone, timedelta
+from unittest.mock import patch, MagicMock
 
 
 class TestAttentionKeywordsIn:
@@ -276,3 +277,85 @@ class TestDigest:
         with open(path) as f:
             content = f.read()
         assert content.count('Email Hygiene Digest') == 2
+
+
+class TestClassifyPendingWithLlm:
+    """Tests for classify_pending_with_llm() — all using mocked Anthropic API."""
+
+    def _pending(self, sender, subject, date=None):
+        return {
+            'sender': sender,
+            'subject': subject,
+            'latest_date': date or '2026-04-01T10:00:00+00:00',
+            'latest_uid': 999,
+        }
+
+    def test_returns_dict_with_categories(self):
+        """Valid JSON response → returns sender→category dict."""
+        pending = [
+            self._pending('spam@promo.com', 'Big Sale Today!'),
+            self._pending('news@substack.com', 'Weekly digest'),
+        ]
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"spam@promo.com": "delete", "news@substack.com": "digest"}')]
+
+        with patch('anthropic.Anthropic') as MockClient:
+            MockClient.return_value.messages.create.return_value = mock_response
+            result = er.classify_pending_with_llm(pending, api_key='test-key')
+
+        assert result == {'spam@promo.com': 'delete', 'news@substack.com': 'digest'}
+
+    def test_invalid_json_falls_back_to_digest(self):
+        """Malformed JSON response → all senders get 'digest'."""
+        pending = [
+            self._pending('weird@x.com', 'Some subject'),
+        ]
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='this is not json at all')]
+
+        with patch('anthropic.Anthropic') as MockClient:
+            MockClient.return_value.messages.create.return_value = mock_response
+            result = er.classify_pending_with_llm(pending, api_key='test-key')
+
+        assert result == {'weird@x.com': 'digest'}
+
+    def test_unknown_category_falls_back_to_digest(self):
+        """Unknown category in response → that sender gets 'digest'."""
+        pending = [
+            self._pending('a@x.com', 'Hi'),
+            self._pending('b@x.com', 'Hello'),
+        ]
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"a@x.com": "archive", "b@x.com": "delete"}')]
+
+        with patch('anthropic.Anthropic') as MockClient:
+            MockClient.return_value.messages.create.return_value = mock_response
+            result = er.classify_pending_with_llm(pending, api_key='test-key')
+
+        assert result['a@x.com'] == 'digest'   # unknown → digest
+        assert result['b@x.com'] == 'delete'   # valid → keep as-is
+
+    def test_empty_pending_returns_empty_dict(self):
+        """Empty pending list → no API call, returns empty dict."""
+        with patch('anthropic.Anthropic') as MockClient:
+            result = er.classify_pending_with_llm([], api_key='test-key')
+
+        MockClient.assert_not_called()
+        assert result == {}
+
+    def test_missing_sender_in_response_falls_back_to_digest(self):
+        """If API doesn't return a category for a sender → that sender gets 'digest'."""
+        pending = [
+            self._pending('a@x.com', 'Hi'),
+            self._pending('b@x.com', 'Hello'),
+        ]
+        mock_response = MagicMock()
+        # Only 'a@x.com' in response — 'b@x.com' missing
+        mock_response.content = [MagicMock(text='{"a@x.com": "keep"}')]
+
+        with patch('anthropic.Anthropic') as MockClient:
+            MockClient.return_value.messages.create.return_value = mock_response
+            result = er.classify_pending_with_llm(pending, api_key='test-key')
+
+        assert result['a@x.com'] == 'keep'
+        assert result['b@x.com'] == 'digest'

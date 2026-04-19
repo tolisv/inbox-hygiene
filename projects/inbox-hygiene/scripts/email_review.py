@@ -20,6 +20,11 @@ import re
 import time
 import argparse
 from datetime import datetime, timedelta, timezone
+
+try:
+    import anthropic as _anthropic
+except ImportError:
+    _anthropic = None
 from email.utils import parseaddr, parsedate_to_datetime
 
 # ---------------------------------------------------------------------------
@@ -463,6 +468,76 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
             senders_map[sender] = mapping[resp]
             break
         print('  Please enter d, di, or k.')
+
+
+# ---------------------------------------------------------------------------
+# LLM classification
+# ---------------------------------------------------------------------------
+
+def classify_pending_with_llm(pending_senders, api_key):
+    """Classify pending senders using Claude Haiku.
+
+    Args:
+        pending_senders: list of dicts with keys sender, subject, latest_date, latest_uid
+        api_key: Anthropic API key string
+
+    Returns:
+        dict mapping sender -> category ('delete'|'digest'|'keep')
+        Falls back to 'digest' for any sender with unknown/missing/invalid category.
+    """
+    if not pending_senders:
+        return {}
+
+    if _anthropic is None:
+        print('Warning: anthropic SDK not installed — skipping LLM classification.',
+              file=sys.stderr)
+        return {}
+
+    sender_lines = '\n'.join(
+        f"- {p['sender']} | subject: {p.get('subject', '')} | date: {p.get('latest_date', '')}"
+        for p in pending_senders
+    )
+
+    prompt = f"""You are classifying email senders for an inbox hygiene system.
+For each sender, suggest one of: delete, digest, keep.
+
+Rules:
+- delete: clearly junk — marketing, promotions, newsletters with no value, spam
+- digest: newsletters or content of interest, transactional emails, services used
+- keep: personal contacts, banks, critical services, VIP senders
+- When in doubt, prefer digest or keep over delete
+- Base your decision on sender address, domain, and most recent subject
+
+Respond with a JSON object only, no explanation: {{"sender@domain.com": "category", ...}}
+
+Senders to classify:
+{sender_lines}"""
+
+    client = _anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model='claude-haiku-4-5-20251001',
+        max_tokens=1024,
+        messages=[{'role': 'user', 'content': prompt}],
+    )
+
+    raw = response.content[0].text.strip()
+
+    try:
+        suggestions = json.loads(raw)
+    except (json.JSONDecodeError, IndexError):
+        print('Warning: LLM returned invalid JSON — falling back to digest for all senders.',
+              file=sys.stderr)
+        return {p['sender']: 'digest' for p in pending_senders}
+
+    result = {}
+    for p in pending_senders:
+        sender = p['sender']
+        category = suggestions.get(sender, 'digest')
+        if category not in CATEGORIES:
+            category = 'digest'
+        result[sender] = category
+
+    return result
 
 
 # ---------------------------------------------------------------------------
