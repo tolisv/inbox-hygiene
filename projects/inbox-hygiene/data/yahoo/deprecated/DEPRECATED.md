@@ -35,6 +35,16 @@ e `summary`.
 
 O script parou de alimentar este arquivo a partir do commit `2175538`.
 
+### `senders2.json`
+
+Versão anterior do `senders.json`, com categorias legadas (`summarize`, `archive_reference`).
+Provavelmente gerado durante uma migração ou backup manual.
+
+Não está no fluxo operacional — o script usa exclusivamente `senders.json`.
+Movido aqui em Abril 2026 para remover ambiguidade no diretório de dados.
+
+---
+
 ## Reativar no futuro?
 
 Se a Fase 3 (LLM + Obsidian) for implementada, `for_digest.txt` pode
