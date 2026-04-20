@@ -4,3 +4,6 @@ venv/
 __pycache__/
 scripts/email_creds.env
 scripts/gmail_creds.env
+data/*/digest.json
+data/*/digest.txt
+data/*/state.json
