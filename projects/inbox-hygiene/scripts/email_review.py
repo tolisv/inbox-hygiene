@@ -31,7 +31,7 @@ from email.utils import parseaddr, parsedate_to_datetime
 # Configuration
 # ---------------------------------------------------------------------------
 
-CATEGORIES = ('delete', 'digest', 'keep')
+CATEGORIES = ('delete', 'digest', 'keep', 'receipt')
 
 LEGACY_CATEGORY_MAP = {
     'keep_never_auto': 'keep',
@@ -46,6 +46,7 @@ CATEGORY_PROMPTS = (
     '[d]elete',
     '[di]gest',
     '[k]eep',
+    '[re]ceipt',
 )
 
 # Subject keywords that upgrade any classification to needs_attention.
@@ -276,7 +277,7 @@ def batched_store(imap, uid_ints, flag, label, batch_size=50):
 # ---------------------------------------------------------------------------
 
 def migrate_senders(senders_map):
-    """Migrate legacy category names to the 3-category system (delete/digest/keep).
+    """Migrate legacy category names to the 4-category system (delete/digest/keep/receipt).
     Returns count of entries migrated."""
     migrated = 0
     for sender, cls in list(senders_map.items()):
@@ -322,6 +323,13 @@ def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_dige
         reason = f'sender=digest, age={age_days(dt)}d'
         return 'collect_digest', reason, bool(matched), matched, also_delete
 
+    if classification == 'receipt':
+        cutoff_year = datetime.now(timezone.utc).year - 2
+        if dt is not None and dt.year <= cutoff_year:
+            return 'receipt_purge', f'sender=receipt, year={dt.year} ≤ {cutoff_year}', False, [], False
+        year_str = str(dt.year) if dt else 'unknown'
+        return 'keep', f'sender=receipt, year={year_str} (recent)', False, [], False
+
     return 'skip', f'unknown classification: {classification}', False, [], False
 
 
@@ -340,6 +348,7 @@ class Digest:
             'digest_collected': [],
             'kept': [],
             'skipped': [],
+            'receipt_purged': [],
         }
         self._attention_items = []
         self._pending_senders = []
@@ -365,6 +374,10 @@ class Digest:
             'subject': (subject or '')[:100],
             'date': dt.isoformat() if dt else None,
         }
+        if action == 'receipt_purge':
+            entry['year'] = dt.year if dt else None
+            self._buckets['receipt_purged'].append(entry)
+            return
         if action == 'delete':
             entry['age_days'] = age_days(dt)
             self._buckets['deleted'].append(entry)
@@ -399,6 +412,7 @@ class Digest:
                     1 for e in self._buckets['digest_collected']
                     if e.get('deleted_after_collect')
                 ),
+                'receipt_purged': len(self._buckets['receipt_purged']),
                 'kept': len(self._buckets['kept']),
                 'skipped': len(self._buckets['skipped']),
                 'pending_classification': len(self._pending_senders),
@@ -425,7 +439,8 @@ class Digest:
             '',
             (f"Scanned: {self._total_scanned} | "
              f"Deleted: {len(self._buckets['deleted'])} delete "
-             f"+ {digest_deleted} digest | "
+             f"+ {digest_deleted} digest "
+             f"+ {len(self._buckets['receipt_purged'])} receipt | "
              f"Pending: {len(self._pending_senders)}"),
             '',
         ]
@@ -462,17 +477,18 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
 
     while True:
         resp = input(
-            '  [d]elete / [di]gest / [k]eep? '
+            '  [d]elete / [di]gest / [k]eep / [re]ceipt? '
         ).strip().lower()
         mapping = {
             'd': 'delete', 'delete': 'delete',
             'di': 'digest', 'dig': 'digest', 'digest': 'digest',
             'k': 'keep', 'keep': 'keep',
+            're': 'receipt', 'rec': 'receipt', 'receipt': 'receipt',
         }
         if resp in mapping:
             senders_map[sender] = mapping[resp]
             break
-        print('  Please enter d, di, or k.')
+        print('  Please enter d, di, k, or re.')
 
 
 # ---------------------------------------------------------------------------
@@ -504,13 +520,15 @@ def classify_pending_with_llm(pending_senders, api_key):
     )
 
     prompt = f"""You are classifying email senders for an inbox hygiene system.
-For each sender, suggest one of: delete, digest, keep.
+For each sender, suggest one of: delete, digest, keep, receipt.
 
 Rules:
 - delete: clearly junk — marketing, promotions, newsletters with no value, spam
 - digest: newsletters or content of interest, transactional emails, services used
 - keep: personal contacts, banks, critical services, VIP senders
+- receipt: invoices, billing receipts, purchase confirmations, subscription renewals — kept for 2 years then auto-purged
 - When in doubt, prefer digest or keep over delete
+- Use receipt for any sender that sends financial documents (invoices, receipts, billing statements)
 - Base your decision on sender address, domain, and most recent subject
 
 Respond with a JSON object only, no explanation: {{"sender@domain.com": "category", ...}}
@@ -549,6 +567,7 @@ Senders to classify:
         if category not in CATEGORIES:
             category = 'digest'
         result[sender] = category
+
 
     return result
 
@@ -724,7 +743,8 @@ def main():
     digest = Digest(args.account)
 
     to_delete = []
-    to_delete_digest = []  # digest emails old enough to delete
+    to_delete_digest = []   # digest emails old enough to delete
+    to_delete_receipt = []  # receipt emails old enough to purge
 
     for uid, sender, subject, dt in messages:
         action, reason, attention, keywords_matched, also_delete = decide_action(
@@ -737,22 +757,27 @@ def main():
             to_delete.append(uid)
         elif action == 'collect_digest' and also_delete:
             to_delete_digest.append(uid)
+        elif action == 'receipt_purge':
+            to_delete_receipt.append(uid)
 
     totals = digest.totals()
     print(f'  Planned: {totals["deleted"]} delete, '
           f'{totals["digest_collected"]} digest seen '
           f'({len(to_delete_digest)} to delete), '
+          f'{totals["receipt_purged"]} receipt purge, '
           f'{totals["kept"]} keep')
 
-    # --- Phase 4: Delete (delete-category + old digest) ----------------------
-    all_to_delete = to_delete + to_delete_digest
+    # --- Phase 4: Delete (delete-category + old digest + receipt purge) -------
+    all_to_delete = to_delete + to_delete_digest + to_delete_receipt
     if all_to_delete:
         if dry_run:
             print(f'[DRY RUN] Would delete {len(to_delete)} delete-category '
-                  f'+ {len(to_delete_digest)} digest message(s).')
+                  f'+ {len(to_delete_digest)} digest '
+                  f'+ {len(to_delete_receipt)} receipt purge message(s).')
         else:
             print(f'Deleting {len(to_delete)} delete-category '
-                  f'+ {len(to_delete_digest)} digest message(s)…')
+                  f'+ {len(to_delete_digest)} digest '
+                  f'+ {len(to_delete_receipt)} receipt purge message(s)…')
             batched_store(imap, all_to_delete, r'(\Deleted)', 'Flagged for deletion')
             imap.expunge()
             print('  Expunged.')

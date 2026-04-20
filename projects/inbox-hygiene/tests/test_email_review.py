@@ -194,6 +194,41 @@ class TestDecideAction:
             'junk@x.com', 'sale', _dt(10), {'junk@x.com': 'delete'}, min_age=7)
         assert action == 'delete'
 
+    def test_receipt_old_email_is_receipt_purge(self):
+        # Email from 3 years ago should be purged
+        old_dt = datetime(datetime.now().year - 3, 6, 1, tzinfo=timezone.utc)
+        action, reason, _, _, _ = self._decide(
+            'billing@acme.com', 'Invoice #123', old_dt, {'billing@acme.com': 'receipt'})
+        assert action == 'receipt_purge'
+        assert str(old_dt.year) in reason
+
+    def test_receipt_recent_email_is_keep(self):
+        # Email from this year should be kept
+        recent_dt = datetime(datetime.now().year, 1, 1, tzinfo=timezone.utc)
+        action, _, _, _, _ = self._decide(
+            'billing@acme.com', 'Invoice #123', recent_dt, {'billing@acme.com': 'receipt'})
+        assert action == 'keep'
+
+    def test_receipt_last_year_is_keep(self):
+        # Email from last year (current_year - 1) should be kept
+        last_year_dt = datetime(datetime.now().year - 1, 6, 1, tzinfo=timezone.utc)
+        action, _, _, _, _ = self._decide(
+            'billing@acme.com', 'Invoice #123', last_year_dt, {'billing@acme.com': 'receipt'})
+        assert action == 'keep'
+
+    def test_receipt_cutoff_year_is_receipt_purge(self):
+        # Email from exactly current_year - 2 should be purged
+        cutoff_dt = datetime(datetime.now().year - 2, 12, 31, tzinfo=timezone.utc)
+        action, _, _, _, _ = self._decide(
+            'billing@acme.com', 'Invoice #123', cutoff_dt, {'billing@acme.com': 'receipt'})
+        assert action == 'receipt_purge'
+
+    def test_receipt_no_date_is_keep(self):
+        # Unknown date — don't purge (safe default)
+        action, _, _, _, _ = self._decide(
+            'billing@acme.com', 'Invoice #123', None, {'billing@acme.com': 'receipt'})
+        assert action == 'keep'
+
 
 import json
 import tempfile
