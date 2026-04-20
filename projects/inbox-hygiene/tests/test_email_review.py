@@ -229,6 +229,24 @@ class TestDecideAction:
             'billing@acme.com', 'Invoice #123', None, {'billing@acme.com': 'receipt'})
         assert action == 'keep'
 
+    def test_purge_recent_email_is_delete(self):
+        # purge ignores age — deletes even if email is from today
+        action, reason, _, _, _ = self._decide(
+            'spam@x.com', 'Buy now', _dt(0), {'spam@x.com': 'purge'})
+        assert action == 'delete'
+        assert 'purge' in reason
+
+    def test_purge_no_date_is_delete(self):
+        # purge ignores missing date too
+        action, _, _, _, _ = self._decide(
+            'spam@x.com', 'Buy now', None, {'spam@x.com': 'purge'})
+        assert action == 'delete'
+
+    def test_purge_old_email_is_delete(self):
+        action, _, _, _, _ = self._decide(
+            'spam@x.com', 'Buy now', _dt(365), {'spam@x.com': 'purge'})
+        assert action == 'delete'
+
 
 import json
 import tempfile

@@ -31,7 +31,7 @@ from email.utils import parseaddr, parsedate_to_datetime
 # Configuration
 # ---------------------------------------------------------------------------
 
-CATEGORIES = ('delete', 'digest', 'keep', 'receipt')
+CATEGORIES = ('delete', 'digest', 'keep', 'receipt', 'purge')
 
 LEGACY_CATEGORY_MAP = {
     'keep_never_auto': 'keep',
@@ -47,6 +47,7 @@ CATEGORY_PROMPTS = (
     '[di]gest',
     '[k]eep',
     '[re]ceipt',
+    '[p]urge',
 )
 
 # Subject keywords that upgrade any classification to needs_attention.
@@ -312,6 +313,9 @@ def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_dige
     if classification == 'keep':
         return 'keep', 'keep — never auto-process', False, [], False
 
+    if classification == 'purge':
+        return 'delete', 'sender=purge, immediate', False, [], False
+
     if classification == 'delete':
         if not is_old_enough(dt, min_age_delete):
             return 'skip', f'too recent ({age_days(dt)}d < min {min_age_delete}d)', False, [], False
@@ -477,18 +481,19 @@ def classify_interactively(sender, imap, sender_latest, senders_map, dry_run):
 
     while True:
         resp = input(
-            '  [d]elete / [di]gest / [k]eep / [re]ceipt? '
+            '  [d]elete / [di]gest / [k]eep / [re]ceipt / [p]urge? '
         ).strip().lower()
         mapping = {
             'd': 'delete', 'delete': 'delete',
             'di': 'digest', 'dig': 'digest', 'digest': 'digest',
             'k': 'keep', 'keep': 'keep',
             're': 'receipt', 'rec': 'receipt', 'receipt': 'receipt',
+            'p': 'purge', 'purge': 'purge',
         }
         if resp in mapping:
             senders_map[sender] = mapping[resp]
             break
-        print('  Please enter d, di, k, or re.')
+        print('  Please enter d, di, k, re, or p.')
 
 
 # ---------------------------------------------------------------------------
@@ -527,6 +532,7 @@ Rules:
 - digest: newsletters or content of interest, transactional emails, services used
 - keep: personal contacts, banks, critical services, VIP senders
 - receipt: invoices, billing receipts, purchase confirmations, subscription renewals — kept for 2 years then auto-purged
+- purge: aggressive spam, unsolicited bulk mail — deleted immediately on every run regardless of age
 - When in doubt, prefer digest or keep over delete
 - Use receipt for any sender that sends financial documents (invoices, receipts, billing statements)
 - Base your decision on sender address, domain, and most recent subject

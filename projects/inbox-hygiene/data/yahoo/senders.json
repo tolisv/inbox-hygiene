@@ -94,6 +94,7 @@
   "mearsheimer@substack.com": "delete",
   "members@aaii.com": "delete",
   "membership@membership.177milkstreet.com": "digest",
+  "milk_street_magazine@orders.buysub.com": "delete",
   "membership@nyphil.org": "digest",
   "mentions@facebookmail.com": "delete",
   "microsiga@bodytech.com.br": "digest",
@@ -230,6 +231,7 @@
   "order-update@amazon.com": "delete",
   "pesquisaitau@itau.com.br": "delete",
   "pontos-e-cashback@itau.com.br": "delete",
+  "personalresultsteam@tonyrobbins.com": "delete",
   "prime@amazon.com": "delete",
   "reuters.support@thomsonreuters.com": "delete",
   "serasapremium@comunicados.serasa.com.br": "delete",
@@ -256,6 +258,7 @@
   "naoresponda@grupofleury.com.br": "delete",
   "no-reply@em-s.dropbox.com": "delete",
   "no-reply@mails.norton.com": "delete",
+  "noreply-gs@mc.goodsync.com": "delete",
   "noreply@google.com": "delete",
   "notificaciones@latam.com": "delete",
   "novedades@a.mercadopago.com": "delete",
@@ -393,5 +396,6 @@
   "noreply@skool.com": "delete",
   "novidades@canal.carlaamorim.com.br": "delete",
   "uppitai@mail.beehiiv.com": "delete",
-  "verify@x.com": "delete"
+  "verify@x.com": "delete",
+  "app.questorpublic.com.br": "purge"
 }
