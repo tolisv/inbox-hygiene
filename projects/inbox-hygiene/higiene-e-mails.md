@@ -107,6 +107,15 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
   mensagens, `senders.json` ou `state.json`. O `digest.json` ainda é atualizado
   para refletir a simulação.
 
+### Classificador padronizado
+
+As duas contas usam o mesmo motor e podem selecionar `none`, `anthropic` ou
+`jev` por linha de comando. Gmail mantém `anthropic` como padrão por
+compatibilidade; Yahoo mantém `none` até aprovação explícita. O piloto Jev usa
+OpenRouter diretamente do Python e pode incluir um trecho de corpo
+sanitizado, sem links, imagens, anexos, HTML, citações ou assinaturas. O
+trecho nunca é persistido nos arquivos de relatório ou estado.
+
 ### Alertas
 
 Para itens `digest`, o assunto é verificado para palavras como senha, fatura,

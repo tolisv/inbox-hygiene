@@ -22,8 +22,11 @@ Automação de higiene do inbox Yahoo via IMAP. Classifica remetentes em 3 categ
 - **run_gmail.sh** — Wrapper para a conta Gmail:
   - Carrega credenciais de `gmail_creds.env` (inclui `ANTHROPIC_API_KEY`)
   - Define `--data-dir` apontando para `data/gmail/`
-  - Passa `--classify-with-llm` automaticamente
+  - Usa `--classifier anthropic` por padrão, preservando o comportamento atual
   - Encaminha todos os argumentos extras para `email_review.py`
+- **openrouter_creds.env** — Credencial local opcional para o piloto JEV:
+  - Contém apenas `OPENROUTER_API_KEY`
+  - É carregado pelos dois wrappers quando presente e nunca deve ser versionado
 
 - **email_creds.env** — Credenciais IMAP (não versionado):
   ```bash
@@ -85,6 +88,8 @@ projects/inbox-hygiene/scripts/run_yahoo.sh
 --min-age-delete N    # idade mínima para delete (padrão: 7)
 --min-age-digest N    # idade mínima para apagar digest (padrão: 14)
 --classify-with-llm   # classifica pending senders via Claude Haiku (requer ANTHROPIC_API_KEY)
+--classifier NAME     # none (padrão), anthropic ou jev
+--classifier-content  # headers (padrão) ou cleaned
 --data-dir PATH       # diretório de dados da conta (definido pelo wrapper)
 --account NAME        # nome da conta para o digest (definido pelo wrapper)
 ```
@@ -100,6 +105,26 @@ Na primeira execução ou ao encontrar remetentes novos, o script exibe o subjec
 ### Modo não-interativo (cron)
 
 Sem TTY, remetentes não classificados vão para `pending_senders` em `state.json`. O OpenClaw os apresenta ao usuário na próxima interação disponível.
+
+### Classificador unificado e piloto Jev
+
+Yahoo e Gmail usam o mesmo motor e as mesmas flags de classificação. Gmail
+preserva o Claude Haiku como padrão; Yahoo fica sem classificador automático
+até ser solicitado explicitamente.
+
+O piloto Jev usa OpenRouter e é sempre iniciado em modo de simulação:
+
+```bash
+# Configure scripts/openrouter_creds.env localmente antes.
+projects/inbox-hygiene/scripts/run_gmail.sh \
+  --dry-run --classifier jev --classifier-content cleaned
+```
+
+`cleaned` busca um trecho limitado do corpo e remove HTML, scripts, imagens,
+URLs, citações, assinaturas e rodapés antes de enviar o texto ao classificador.
+O trecho não é gravado em `digest.json` nem em `state.json`. A resposta Jev
+aceita apenas `delete`, `digest`, `keep` e `receipt`; `purge` é bloqueado. Em
+erro de rede ou JSON inválido, o remetente permanece pendente.
 
 ## Arquivos de dados
 

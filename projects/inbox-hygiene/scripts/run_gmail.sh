@@ -26,6 +26,13 @@ set -a
 source "$CREDS_FILE"
 set +a
 
+OPENROUTER_CREDS_FILE="$SCRIPT_DIR/openrouter_creds.env"
+if [[ -f "$OPENROUTER_CREDS_FILE" ]]; then
+    set -a
+    source "$OPENROUTER_CREDS_FILE"
+    set +a
+fi
+
 mkdir -p "$DATA_DIR"
 chmod 700 "$DATA_DIR"
 
@@ -45,5 +52,5 @@ fi
 exec "$PYTHON" "$SCRIPT_DIR/email_review.py" \
     --data-dir "$DATA_DIR" \
     --account "gmail" \
-    --classify-with-llm \
+    --classifier anthropic \
     "$@"

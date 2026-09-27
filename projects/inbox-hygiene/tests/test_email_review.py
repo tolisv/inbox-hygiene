@@ -412,3 +412,79 @@ class TestClassifyPendingWithLlm:
 
         assert result['a@x.com'] == 'keep'
         assert result['b@x.com'] == 'digest'
+
+
+class TestSanitizeEmailContent:
+    def test_removes_html_links_and_script(self):
+        raw = '<html><style>bad</style><script>alert(1)</script><p>Hello <a href="https://x.test">there</a></p></html>'
+        result = er.sanitize_email_content(raw)
+        assert 'Hello' in result
+        assert 'https://' not in result
+        assert 'alert' not in result
+
+    def test_removes_quote_signature_and_unsubscribe(self):
+        raw = 'Useful update\n> old reply\n-- \nName\nUnsubscribe here'
+        result = er.sanitize_email_content(raw)
+        assert result == 'Useful update'
+
+    def test_bounds_result(self):
+        assert len(er.sanitize_email_content('x' * 100, max_chars=20)) == 20
+
+
+class TestClassifyPendingWithJev:
+    def _pending(self, sender, subject, content=''):
+        return {
+            'sender': sender,
+            'subject': subject,
+            'latest_date': '2026-09-27T10:00:00+00:00',
+            'latest_uid': 999,
+            'content': content,
+        }
+
+    def _response(self, content):
+        response = MagicMock()
+        response.read.return_value = json.dumps({
+            'choices': [{'message': {'content': content}}]
+        }).encode('utf-8')
+        return response
+
+    def test_accepts_known_categories_and_never_purge(self):
+        pending = [
+            self._pending('news@example.com', 'Weekly', 'Useful article'),
+            self._pending('spam@example.com', 'Sale'),
+        ]
+        response = self._response(
+            '{"news@example.com":"digest","spam@example.com":"purge"}')
+        context = MagicMock()
+        context.__enter__.return_value = response
+        context.__exit__.return_value = False
+        with patch('urllib.request.urlopen', return_value=context):
+            result = er.classify_pending_with_jev(pending, api_key='test-key')
+
+        assert result == {'news@example.com': 'digest'}
+
+    def test_invalid_json_leaves_everyone_pending(self):
+        pending = [self._pending('news@example.com', 'Weekly')]
+        response = self._response('not json')
+        context = MagicMock()
+        context.__enter__.return_value = response
+        context.__exit__.return_value = False
+        with patch('urllib.request.urlopen', return_value=context):
+            result = er.classify_pending_with_jev(pending, api_key='test-key')
+
+        assert result == {}
+
+    def test_sends_clean_content_not_metadata(self):
+        pending = [self._pending('news@example.com', 'Weekly', 'No links here')]
+        response = self._response('{"news@example.com":"digest"}')
+        context = MagicMock()
+        context.__enter__.return_value = response
+        context.__exit__.return_value = False
+        with patch('urllib.request.urlopen', return_value=context) as mocked:
+            er.classify_pending_with_jev(pending, api_key='test-key')
+
+        request = mocked.call_args.args[0]
+        payload = json.loads(request.data.decode('utf-8'))
+        assert payload['model'] == er.JEV_MODEL
+        assert 'No links here' in payload['messages'][1]['content']
+        assert request.get_header('Authorization') == 'Bearer test-key'
