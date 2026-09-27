@@ -45,17 +45,20 @@ A conta Yahoo é usada principalmente como caixa de junk mail, propagandas e new
 
 ---
 
-## Sistema atual (implementado em Abril 2026)
+## Sistema atual (setembro de 2026)
 
-### 3 categorias
+### Categorias em uso
 
-Simplificamos de 5 para 3 categorias:
+O código trabalha com cinco categorias. A documentação anterior, que descrevia
+somente três, estava desatualizada.
 
 | Categoria | Descrição | Ação do script | Retenção |
 |-----------|-----------|----------------|----------|
-| `delete` | Junk puro, marketing sem valor, spam | Apaga com ≥ 7 dias | 7 dias |
-| `digest` | Newsletters, conteúdo de interesse, não-VIP não-junk | Apaga com ≥ 14 dias; subject verificado para keywords de atenção | 14 dias |
-| `keep` | VIP, pessoal, banco crítico | Nenhuma ação | Indefinida |
+| `delete` | Marketing sem valor ou junk conhecido | Apaga com ≥ 7 dias | 7 dias |
+| `digest` | Newsletter ou conteúdo possivelmente útil | Registra no digest; apaga com ≥ 14 dias | 14 dias |
+| `keep` | Pessoas, bancos, serviços críticos e VIPs | Nunca altera automaticamente | Indefinida |
+| `receipt` | Recibos, faturas e comprovantes | Mantém e remove os de ano-calendário com ≥ 2 anos | ~2 anos |
+| `purge` | Spam inequívoco | Apaga imediatamente | Imediata |
 
 ### Migração das categorias legadas
 
@@ -77,11 +80,40 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
 - A detecção usa fronteiras de palavra/expressão, para evitar falsos positivos por substring acidental
 - Isso permite ao OpenClaw filtrar itens urgentes sem que o script tome decisões destrutivas
 
-### Retenção
+### Processamento diário
 
-- `delete`: 7 dias
-- `digest`: 14 dias
-- `keep`: sem deleção automática
+1. Os agendamentos do OpenClaw acionam Gmail às 19h e Yahoo às 20h (America/Sao_Paulo).
+2. O wrapper de cada conta carrega a credencial IMAP e chama
+   `scripts/email_review.py` com seu diretório de dados.
+3. O script busca mensagens dos últimos 360 dias e lê apenas cabeçalhos
+   (`From`, `Date` e `Subject`) usando `BODY.PEEK`, portanto não marca e-mails
+   como lidos.
+4. Cada mensagem é comparada ao mapa de remetentes em `senders.json`; a regra
+   é por endereço completo, não por domínio.
+5. Nas execuções normais, exclusões são feitas por `\\Deleted` seguido de
+   `EXPUNGE`; isso é exclusão definitiva da pasta, não arquivamento ou lixeira.
+6. Ao final, o script sobrescreve `digest.json`, acrescenta o relatório em
+   `digest.txt` e persiste o estado em `state.json`.
+
+### Remetentes novos e LLM
+
+- **Yahoo:** em execução automática, remetentes desconhecidos são registrados
+  em `pending_senders` para decisão posterior do usuário.
+- **Gmail:** o wrapper habilita classificação por LLM. Quando houver pendências,
+  o script envia ao provedor configurado apenas remetente, assunto mais recente
+  e data, recebe uma sugestão de categoria e grava em `data/gmail/senders.json`
+  numa execução normal. O provedor atual é Claude Haiku.
+- Em `--dry-run`, o sistema consulta a caixa e produz relatório, mas não altera
+  mensagens, `senders.json` ou `state.json`. O `digest.json` ainda é atualizado
+  para refletir a simulação.
+
+### Alertas
+
+Para itens `digest`, o assunto é verificado para palavras como senha, fatura,
+vencimento, pagamento, alteração, alerta e renovação. Encontrando uma delas,
+o registro entra em `attention_items` no `digest.json`, para ser destacado pelo
+OpenClaw. A regra atual **não protege** itens classificados como `delete`,
+`keep` ou `receipt`; isso é uma lacuna deliberadamente registrada no backlog.
 
 ---
 
@@ -89,11 +121,10 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
 
 O OpenClaw é o agente autônomo que opera este sistema diariamente:
 
-1. Executa `run_yahoo.sh` via cron (7h da manhã)
-2. Lê `data/yahoo/digest.json` após a execução
-3. Notifica o usuário se houver itens com `attention: true` (faturas, vencimentos)
-4. Apresenta `pending_senders` para classificação na próxima interação disponível
-5. Atualiza `senders.json` com a classificação confirmada pelo usuário
+1. Executa `run_gmail.sh` às 19h e `run_yahoo.sh` às 20h.
+2. Lê o `digest.json` da conta após a execução e envia o resumo no Telegram.
+3. Destaca `attention_items`, pendências de classificação, classificações LLM e erros.
+4. Apresenta `pending_senders` para classificação em uma interação posterior.
 
 Para mais detalhes, ver `AGENT.md`.
 
@@ -104,9 +135,11 @@ Para mais detalhes, ver `AGENT.md`.
 ```
 projects/inbox-hygiene/
   scripts/
-    email_review.py      # script principal (account-agnostic)
+    email_review.py      # motor principal (compartilhado pelas contas)
     run_yahoo.sh         # wrapper Yahoo
-    email_creds.env      # credenciais IMAP (não versionado)
+    run_gmail.sh         # wrapper Gmail + classificação LLM
+    email_creds.env      # credenciais Yahoo (não versionado)
+    gmail_creds.env      # credenciais Gmail/LLM (não versionado)
     README.md
   data/
     yahoo/
@@ -114,6 +147,10 @@ projects/inbox-hygiene/
       state.json         # last_uid, pending_senders
       digest.json        # digest estruturado (OpenClaw consome)
       deprecated/        # arquivos descontinuados em Abril 2026 (ver DEPRECATED.md)
+    gmail/
+      senders.json       # mapa remetente → categoria
+      state.json         # estado da conta
+      digest.json        # relatório estruturado da última execução
   tests/
     test_email_review.py
   AGENT.md               # brief para o OpenClaw
@@ -124,30 +161,36 @@ projects/inbox-hygiene/
 
 ## Fases do projeto
 
-### Fase 1 — Implementado ✓
+### Implementado ✓
 
-- Script Python com 3 categorias
-- Retenção mínima de 30 dias para `delete`
-- Digest estruturado em JSON para OpenClaw consumir
-- Migração automática do `senders.json` existente
-- Integração com OpenClaw via `AGENT.md`
-- Repositório privado no GitHub: `tolisv/inbox-hygiene`
+- Motor Python compartilhado pelas contas Yahoo e Gmail.
+- Cinco categorias, retenção e digest estruturado.
+- Classificação por LLM no Gmail.
+- Agendamentos diários no OpenClaw com resumo no Telegram.
+- Repositório privado no GitHub: `tolisv/inbox-hygiene`.
 
-### Fase 2 — Próxima
+### Backlog inicial
 
-- OpenClaw lê `digest.json` no heartbeat e notifica o usuário
-- Classificação de senders pendentes via chat com o OpenClaw
+1. **Segurança — alerta antes de exclusão:** se um assunto contiver keyword
+   crítica, impedir exclusão automática e criar `attention_item` em qualquer
+   categoria, não apenas `digest`.
+2. **Eficiência — processamento incremental:** fazer `last_uid` limitar o
+   processamento, preservando uma janela curta de rechecagem para segurança.
+3. **Retenção — recibos por idade exata:** substituir a regra de ano-calendário
+   por 24 meses completos.
+4. **Qualidade — política por caixa:** formalizar regras próprias para Gmail,
+   iCloud, ATV Partners e, separadamente, Ergondata. A conta Ergondata não terá
+   automação destrutiva até política aprovada.
+5. **LLM — piloto OpenRouter/Jev:** testar em lote não destrutivo, com dados
+   minimizados e métricas de custo, precisão e falsos positivos antes de uso
+   automático.
+6. **Operação — classificação via chat:** oferecer pendências de Yahoo em lotes
+   revisáveis e aplicar somente classificações explicitamente aprovadas.
+7. **Segurança operacional — Git:** retirar credencial embutida da URL do
+   remoto após migrar para autenticação segura e rotacionar a credencial atual.
 
-### Fase 3 — Futura (redesenho necessário)
-
-- LLM processa conteúdo selecionado de emails `digest` de alto valor
-- Grava em `raw/` do vault Obsidian no Mac Studio (estilo Karpathy)
-- Nota: o acumulador bruto (`for_digest.txt`) foi descontinuado em Abril 2026 por
-  excesso de ruído. A Fase 3 precisará de um funil de seleção antes de enviar para LLM.
-
-### Fase 4 — Futura
-
-- Expansão para Gmail, iCloud, ATV Partners com políticas próprias
+O backlog deve ser migrado para o Linear assim que a integração for
+reautenticada.
 
 ---
 
