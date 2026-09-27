@@ -74,15 +74,19 @@ A migração é feita automaticamente na primeira execução com o novo script.
 
 ### Detecção de keywords
 
-Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verificadas **somente em emails `digest`**:
-- Para `delete` e `keep`, não há verificação de keyword, confia-se na classificação do remetente
-- Quando encontrada num email `digest`, adiciona `attention: true` no `digest.json` sem mudar a ação
-- A detecção usa fronteiras de palavra/expressão, para evitar falsos positivos por substring acidental
-- Isso permite ao OpenClaw filtrar itens urgentes sem que o script tome decisões destrutivas
+Palavras-chave críticas (fatura, vencimento, alerta, senha, itinerário, etc.)
+são uma trava de segurança para categorias destrutivas:
+
+- em mensagens `delete`, `purge` ou `digest`, uma keyword impede a exclusão,
+  direciona a mensagem ao digest e cria um `attention_item`;
+- `keep` e `receipt` continuam preservados pelas respectivas políticas;
+- a detecção usa fronteiras de palavra/expressão, para evitar falsos positivos
+  por substring acidental.
 
 ### Processamento diário
 
-1. Os agendamentos do OpenClaw acionam Gmail às 19h e Yahoo às 20h (America/Sao_Paulo).
+1. Timers de usuário do `systemd` acionam Gmail às 19h e Yahoo às 20h
+   (`America/Sao_Paulo`) sem iniciar um agente LLM.
 2. O wrapper de cada conta carrega a credencial IMAP e chama
    `scripts/email_review.py` com seu diretório de dados.
 3. O script busca mensagens dos últimos 360 dias e lê apenas cabeçalhos
@@ -94,15 +98,15 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
    `EXPUNGE`; isso é exclusão definitiva da pasta, não arquivamento ou lixeira.
 6. Ao final, o script sobrescreve `digest.json`, acrescenta o relatório em
    `digest.txt` e persiste o estado em `state.json`.
+7. Um notificador determinístico lê campos fixos do `digest.json` e envia o
+   resumo pelo canal Telegram do OpenClaw, sem usar modelo de linguagem.
 
 ### Remetentes novos e LLM
 
-- **Yahoo:** em execução automática, remetentes desconhecidos são registrados
-  em `pending_senders` para decisão posterior do usuário.
-- **Gmail:** o wrapper habilita classificação por LLM. Quando houver pendências,
-  o script envia ao provedor configurado apenas remetente, assunto mais recente
-  e data, recebe uma sugestão de categoria e grava em `data/gmail/senders.json`
-  numa execução normal. O provedor atual é Claude Haiku.
+- **Yahoo e Gmail:** a execução agendada seleciona JEV via OpenRouter. Quando
+  houver pendências, o script envia remetente, assunto, data e um trecho de
+  conteúdo sanitizado, recebe categoria e confiança e grava apenas sugestões
+  que ultrapassem os limiares configurados.
 - Em `--dry-run`, o sistema consulta a caixa e produz relatório, mas não altera
   mensagens, `senders.json` ou `state.json`. O `digest.json` ainda é atualizado
   para refletir a simulação.
@@ -110,9 +114,9 @@ Palavras-chave (fatura, vencimento, alerta, senha, itinerário, etc.) são verif
 ### Classificador padronizado
 
 As duas contas usam o mesmo motor e podem selecionar `none`, `anthropic` ou
-`jev` por linha de comando. Gmail mantém `anthropic` como padrão por
-compatibilidade; Yahoo mantém `none` até aprovação explícita. O piloto Jev usa
-OpenRouter diretamente do Python e pode incluir um trecho de corpo
+`jev` por linha de comando. O wrapper Gmail mantém `anthropic` como padrão para
+execuções manuais sem opções; o executor agendado seleciona `jev` explicitamente
+para ambas as contas. JEV usa OpenRouter diretamente do Python e inclui um trecho de corpo
 sanitizado, sem links, imagens, anexos, HTML, citações ou assinaturas. O
 trecho nunca é persistido nos arquivos de relatório ou estado. Jev retorna
 uma categoria, probabilidades e confiança; sugestões abaixo de 0,85
@@ -120,22 +124,25 @@ permanecem pendentes, e `delete` requer no mínimo 0,90.
 
 ### Alertas
 
-Para itens `digest`, o assunto é verificado para palavras como senha, fatura,
-vencimento, pagamento, alteração, alerta e renovação. Encontrando uma delas,
-o registro entra em `attention_items` no `digest.json`, para ser destacado pelo
-OpenClaw. A regra atual **não protege** itens classificados como `delete`,
-`keep` ou `receipt`; isso é uma lacuna deliberadamente registrada no backlog.
+Para categorias potencialmente destrutivas, o assunto é verificado para
+palavras como senha, fatura, vencimento, pagamento, alteração, alerta e
+renovação. Encontrando uma delas, o registro entra em `attention_items` e a
+mensagem não é apagada automaticamente.
 
 ---
 
-## Integração com OpenClaw
+## Agendamento e integração com OpenClaw
 
-O OpenClaw é o agente autônomo que opera este sistema diariamente:
+O caminho de produção é determinístico:
 
-1. Executa `run_gmail.sh` às 19h e `run_yahoo.sh` às 20h.
-2. Lê o `digest.json` da conta após a execução e envia o resumo no Telegram.
-3. Destaca `attention_items`, pendências de classificação, classificações LLM e erros.
-4. Apresenta `pending_senders` para classificação em uma interação posterior.
+1. `systemd` inicia `run_scheduled.sh` no horário de cada conta.
+2. O executor chama o wrapper com `--classifier jev --classifier-content cleaned`.
+3. `notify_digest.py` lê o resultado e usa o CLI do OpenClaw somente para
+   entregar um resumo fixo no Telegram.
+4. Falhas e saídas completas ficam no journal do serviço.
+
+Os antigos jobs `agentTurn` do OpenClaw permanecem desativados. Assim, a
+execução de e-mail não depende do modelo configurado para o agente.
 
 Para mais detalhes, ver `AGENT.md`.
 
@@ -149,6 +156,8 @@ projects/inbox-hygiene/
     email_review.py      # motor principal (compartilhado pelas contas)
     run_yahoo.sh         # wrapper Yahoo
     run_gmail.sh         # wrapper Gmail + classificação LLM
+    run_scheduled.sh     # executor JEV usado pelo systemd
+    notify_digest.py     # resumo determinístico para Telegram
     email_creds.env      # credenciais Yahoo (não versionado)
     gmail_creds.env      # credenciais Gmail/LLM (não versionado)
     README.md
@@ -164,6 +173,11 @@ projects/inbox-hygiene/
       digest.json        # relatório estruturado da última execução
   tests/
     test_email_review.py
+    test_notify_digest.py
+  systemd/
+    inbox-hygiene@.service
+    inbox-hygiene-gmail.timer
+    inbox-hygiene-yahoo.timer
   AGENT.md               # brief para o OpenClaw
   higiene-e-mails.md     # este arquivo
 ```
@@ -177,27 +191,23 @@ projects/inbox-hygiene/
 - Motor Python compartilhado pelas contas Yahoo e Gmail.
 - Cinco categorias, retenção e digest estruturado.
 - Classificação por LLM no Gmail.
-- Agendamentos diários no OpenClaw com resumo no Telegram.
+- Timers diários do systemd, independentes de LLM, com resumo no Telegram.
+- Classificador JEV/OpenRouter padronizado em Gmail e Yahoo.
+- Keywords críticas bloqueiam exclusões e geram alertas.
 - Repositório privado no GitHub: `tolisv/inbox-hygiene`.
 
 ### Backlog inicial
 
-1. **Segurança — alerta antes de exclusão:** se um assunto contiver keyword
-   crítica, impedir exclusão automática e criar `attention_item` em qualquer
-   categoria, não apenas `digest`.
-2. **Eficiência — processamento incremental:** fazer `last_uid` limitar o
+1. **Eficiência — processamento incremental:** fazer `last_uid` limitar o
    processamento, preservando uma janela curta de rechecagem para segurança.
-3. **Retenção — recibos por idade exata:** substituir a regra de ano-calendário
+2. **Retenção — recibos por idade exata:** substituir a regra de ano-calendário
    por 24 meses completos.
-4. **Qualidade — política por caixa:** formalizar regras próprias para Gmail,
+3. **Qualidade — política por caixa:** formalizar regras próprias para Gmail,
    iCloud, ATV Partners e, separadamente, Ergondata. A conta Ergondata não terá
    automação destrutiva até política aprovada.
-5. **LLM — piloto OpenRouter/Jev:** testar em lote não destrutivo, com dados
-   minimizados e métricas de custo, precisão e falsos positivos antes de uso
-   automático.
-6. **Operação — classificação via chat:** oferecer pendências de Yahoo em lotes
+4. **Operação — classificação via chat:** oferecer pendências de Yahoo em lotes
    revisáveis e aplicar somente classificações explicitamente aprovadas.
-7. **Segurança operacional — Git:** retirar credencial embutida da URL do
+5. **Segurança operacional — Git:** retirar credencial embutida da URL do
    remoto após migrar para autenticação segura e rotacionar a credencial atual.
 
 O backlog deve ser migrado para o Linear assim que a integração for

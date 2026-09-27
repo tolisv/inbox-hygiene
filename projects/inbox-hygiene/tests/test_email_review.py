@@ -142,13 +142,20 @@ class TestDecideAction:
             'junk@x.com', 'sale!', _dt(30), {'junk@x.com': 'delete'})
         assert action == 'delete'
 
-    def test_delete_keyword_in_subject_does_not_change_action(self):
-        # keywords are NOT checked for delete senders
+    def test_delete_keyword_in_subject_blocks_deletion(self):
         action, _, attention, kw, also_delete = self._decide(
             'junk@x.com', 'Fatura pendente', _dt(31), {'junk@x.com': 'delete'})
-        assert action == 'delete'
-        assert attention is False
-        assert kw == []
+        assert action == 'collect_digest'
+        assert attention is True
+        assert 'fatura' in kw
+        assert also_delete is False
+
+    def test_purge_keyword_in_subject_blocks_deletion(self):
+        action, _, attention, kw, also_delete = self._decide(
+            'junk@x.com', 'Alerta de senha', _dt(1), {'junk@x.com': 'purge'})
+        assert action == 'collect_digest'
+        assert attention is True
+        assert 'senha' in kw
         assert also_delete is False
 
     # digest category
@@ -167,6 +174,14 @@ class TestDecideAction:
         assert attention is True
         assert 'fatura' in kw
         assert also_delete is False  # too recent to delete
+
+    def test_old_digest_with_keyword_is_not_deleted(self):
+        action, _, attention, kw, also_delete = self._decide(
+            'bank@x.com', 'Fatura disponível', _dt(90), {'bank@x.com': 'digest'})
+        assert action == 'collect_digest'
+        assert attention is True
+        assert 'fatura' in kw
+        assert also_delete is False
 
     def test_digest_not_age_gated(self):
         # digest emails are always collected regardless of age

@@ -346,12 +346,18 @@ def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_dige
         also_delete: True for 'collect_digest' emails old enough to be deleted
                      after collection (age >= min_age_digest).
 
-    attention: True only for 'collect_digest' emails that match attention keywords.
-    keywords_matched: list of matched keywords (non-empty only when attention=True).
+    Critical attention keywords always block automatic deletion for destructive
+    categories. The message is collected for the digest instead.
     """
     classification = senders_map.get(sender)
     if not classification:
         return 'skip', 'unclassified sender', False, [], False
+
+    matched = attention_keywords_in(subject)
+    if matched and classification in ('delete', 'purge'):
+        return ('collect_digest',
+                f'critical subject protected from sender={classification}',
+                True, matched, False)
 
     if classification == 'keep':
         return 'keep', 'keep — never auto-process', False, [], False
@@ -365,8 +371,8 @@ def decide_action(sender, subject, dt, senders_map, min_age_delete, min_age_dige
         return 'delete', f'sender=delete, age={age_days(dt)}d', False, [], False
 
     if classification == 'digest':
-        matched = attention_keywords_in(subject)
-        also_delete = is_old_enough(dt, min_age_digest)
+        # Attention items remain in the mailbox regardless of age.
+        also_delete = is_old_enough(dt, min_age_digest) and not matched
         reason = f'sender=digest, age={age_days(dt)}d'
         return 'collect_digest', reason, bool(matched), matched, also_delete
 

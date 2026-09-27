@@ -1,0 +1,11 @@
+[Unit]
+Description=Inbox hygiene (%i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/tolis/.openclaw/workspace/projects/inbox-hygiene
+ExecStart=/home/tolis/.openclaw/workspace/projects/inbox-hygiene/scripts/run_scheduled.sh %i
+UMask=0077
+Nice=10
