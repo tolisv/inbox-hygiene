@@ -215,6 +215,14 @@ reautenticada.
 
 ---
 
+## Operação e histórico de migração
+
+O runbook completo, incluindo causa raiz do incidente, arquitetura `systemd`,
+procedimentos de diagnóstico, resultados de 27 de setembro de 2026 e rollback,
+está em [`OPERATIONS.md`](OPERATIONS.md).
+
+---
+
 ## Critério de sucesso
 
 O projeto será bem-sucedido quando:
