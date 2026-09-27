@@ -112,7 +112,7 @@ Yahoo e Gmail usam o mesmo motor e as mesmas flags de classificação. Gmail
 preserva o Claude Haiku como padrão; Yahoo fica sem classificador automático
 até ser solicitado explicitamente.
 
-O piloto Jev usa OpenRouter e é sempre iniciado em modo de simulação:
+O piloto Jev usa a API tipada de decisões do OpenRouter e é sempre iniciado em modo de simulação:
 
 ```bash
 # Configure scripts/openrouter_creds.env localmente antes.
@@ -123,8 +123,10 @@ projects/inbox-hygiene/scripts/run_gmail.sh \
 `cleaned` busca um trecho limitado do corpo e remove HTML, scripts, imagens,
 URLs, citações, assinaturas e rodapés antes de enviar o texto ao classificador.
 O trecho não é gravado em `digest.json` nem em `state.json`. A resposta Jev
-aceita apenas `delete`, `digest`, `keep` e `receipt`; `purge` é bloqueado. Em
-erro de rede ou JSON inválido, o remetente permanece pendente.
+aceita apenas `delete`, `digest`, `keep` e `receipt`, com probabilidades e
+confiança; `purge` é bloqueado. Abaixo de 0,85 de confiança, a sugestão fica
+pendente para revisão. Para `delete`, o mínimo é 0,90. Em erro de rede ou JSON
+inválido, o remetente também permanece pendente.
 
 ## Arquivos de dados
 

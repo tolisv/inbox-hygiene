@@ -441,31 +441,38 @@ class TestClassifyPendingWithJev:
             'content': content,
         }
 
-    def _response(self, content):
+    def _response(self, choice, confidence=0.95, probabilities=None):
         response = MagicMock()
         response.read.return_value = json.dumps({
-            'choices': [{'message': {'content': content}}]
+            'answers': {
+                'category': {
+                    'type': 'choice',
+                    'choice': choice,
+                    'confidence': confidence,
+                    'probabilities': probabilities or {choice: confidence},
+                }
+            }
         }).encode('utf-8')
         return response
 
     def test_accepts_known_categories_and_never_purge(self):
         pending = [
             self._pending('news@example.com', 'Weekly', 'Useful article'),
-            self._pending('spam@example.com', 'Sale'),
         ]
-        response = self._response(
-            '{"news@example.com":"digest","spam@example.com":"purge"}')
+        response = self._response('digest', 0.88)
         context = MagicMock()
         context.__enter__.return_value = response
         context.__exit__.return_value = False
         with patch('urllib.request.urlopen', return_value=context):
             result = er.classify_pending_with_jev(pending, api_key='test-key')
 
-        assert result == {'news@example.com': 'digest'}
+        assert result['news@example.com']['category'] == 'digest'
+        assert result['news@example.com']['confidence'] == 0.88
 
-    def test_invalid_json_leaves_everyone_pending(self):
+    def test_invalid_response_leaves_everyone_pending(self):
         pending = [self._pending('news@example.com', 'Weekly')]
-        response = self._response('not json')
+        response = MagicMock()
+        response.read.return_value = b'{"answers": {}}'
         context = MagicMock()
         context.__enter__.return_value = response
         context.__exit__.return_value = False
@@ -476,7 +483,7 @@ class TestClassifyPendingWithJev:
 
     def test_sends_clean_content_not_metadata(self):
         pending = [self._pending('news@example.com', 'Weekly', 'No links here')]
-        response = self._response('{"news@example.com":"digest"}')
+        response = self._response('digest')
         context = MagicMock()
         context.__enter__.return_value = response
         context.__exit__.return_value = False
@@ -486,5 +493,24 @@ class TestClassifyPendingWithJev:
         request = mocked.call_args.args[0]
         payload = json.loads(request.data.decode('utf-8'))
         assert payload['model'] == er.JEV_MODEL
-        assert 'No links here' in payload['messages'][1]['content']
+        assert request.full_url == er.OPENROUTER_JEV_URL
+        assert 'No links here' in payload['state']['email']['content']
+        assert payload['questions']['category']['type'] == 'choice'
         assert request.get_header('Authorization') == 'Bearer test-key'
+
+    def test_low_confidence_delete_leaves_sender_pending(self):
+        pending = [self._pending('spam@example.com', 'Sale')]
+        response = self._response('delete', er.JEV_DELETE_MIN_CONFIDENCE - 0.01)
+        context = MagicMock()
+        context.__enter__.return_value = response
+        context.__exit__.return_value = False
+        with patch('urllib.request.urlopen', return_value=context):
+            result = er.classify_pending_with_jev(pending, api_key='test-key')
+
+        assert result == {}
+
+    def test_auto_acceptance_thresholds(self):
+        assert er.is_jev_auto_accepted({'category': 'digest', 'confidence': 0.85})
+        assert not er.is_jev_auto_accepted({'category': 'digest', 'confidence': 0.84})
+        assert er.is_jev_auto_accepted({'category': 'delete', 'confidence': 0.90})
+        assert not er.is_jev_auto_accepted({'category': 'delete', 'confidence': 0.89})

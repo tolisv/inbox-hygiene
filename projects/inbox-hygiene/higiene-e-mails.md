@@ -114,7 +114,9 @@ As duas contas usam o mesmo motor e podem selecionar `none`, `anthropic` ou
 compatibilidade; Yahoo mantém `none` até aprovação explícita. O piloto Jev usa
 OpenRouter diretamente do Python e pode incluir um trecho de corpo
 sanitizado, sem links, imagens, anexos, HTML, citações ou assinaturas. O
-trecho nunca é persistido nos arquivos de relatório ou estado.
+trecho nunca é persistido nos arquivos de relatório ou estado. Jev retorna
+uma categoria, probabilidades e confiança; sugestões abaixo de 0,85
+permanecem pendentes, e `delete` requer no mínimo 0,90.
 
 ### Alertas
 
